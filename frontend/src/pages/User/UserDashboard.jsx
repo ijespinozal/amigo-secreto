@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import Card from "../../components/Card";
+import useAuth from "../../hooks/useAuth";
 
 export default function UserDashboard() {
+  const { user, logout } = useAuth();
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-        🎅 Bienvenido
+        🎅 Bienvenid@ {user.firstName}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

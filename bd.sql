@@ -57,3 +57,6 @@ CREATE TABLE assignments (
   FOREIGN KEY (giverParticipantId) REFERENCES participants(id),
   FOREIGN KEY (receiverParticipantId) REFERENCES participants(id)
 );
+
+INSERT INTO users (firstName, lastName, phone, password, role)
+VALUES ("admin", "admin", "999999999", "$2b$10$EMxCsdfTysTs4EsmKIx20OKAGdr0A5oXGCEVD0qJxH3LPBt.ujmsO", "admin");
