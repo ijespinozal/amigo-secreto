@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Amigo Secreto</title>
+    <style>
+      #musicBtn:hover {
+        transform: scale(1.12);
+        background: #b71c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <button id="musicBtn" style="
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 60px;
+      height: 60px;
+      background: #d32f2f;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.25);
+      z-index: 999999;
+      transition: transform 0.2s ease, background 0.2s ease;
+    ">
+      🎵
+    </button>
+    <audio id="bgMusic" loop autoplay>
+      <source src="src/assets/Navidad.mp3">
+    </audio>
+  </body>
+
+  <script>
+    const music = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicBtn");
+
+    musicBtn.addEventListener("click", () => {
+      if (music.muted) {
+        music.muted = false;
+        music.play();
+        musicBtn.textContent = "🔇";
+      } else {
+        music.muted = true;
+        musicBtn.textContent = "🎵";
+      }
+    });
+    
+    document.addEventListener("click", function autoPlayOnce() {
+      music.muted = false;
+      music.play();
+      document.removeEventListener("click", autoPlayOnce);
+    });
+
+    function createSnowflake() {
+      const snowflake = document.createElement("span");
+      snowflake.className = "snowflake";
+      snowflake.textContent = Math.random() > 0.5 ? "❆" : "❅";
+      // Posición horizontal aleatoria
+      snowflake.style.left = Math.random() * 100 + "vw";
+      // Tamaño aleatorio
+      snowflake.style.fontSize = Math.random() * 15 + 10 + "px";
+      // Caída más rápida o lenta
+      snowflake.style.animationDuration = 4 + Math.random() * 6 + "s";
+      document.body.appendChild(snowflake);
+      // Eliminar el copo después de terminar la animación
+      setTimeout(() => {
+        snowflake.remove();
+      }, 10000);
+    }
+    // Crear nuevos copos constantemente
+    setInterval(createSnowflake, 300);
+  </script>
+
+</html>
