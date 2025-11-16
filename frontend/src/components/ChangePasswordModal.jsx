@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../api";
+import Spinner from "./Spinner";
+import AlertMessage from "./AlertMessage";
 
 export default function ChangePasswordModal({ open, onClose }) {
   if (!open) return null;
@@ -8,6 +10,9 @@ export default function ChangePasswordModal({ open, onClose }) {
   const [newPass, setNewPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState(null);
+
+  const [alert, setAlert] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const modalRef = useRef(null);
 
@@ -29,6 +34,9 @@ export default function ChangePasswordModal({ open, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    //setAlert({ show: false, type: "", message: "" });
+    setLoading(true);
+
     if (newPass !== confirm) {
       setMsg({ type: "error", text: "Las contraseñas no coinciden" });
       return;
@@ -40,7 +48,12 @@ export default function ChangePasswordModal({ open, onClose }) {
         newPassword: newPass,
       });
 
-      setMsg({ type: "success", text: res.data.message });
+      //setMsg({ type: "success", text: res.data.message });
+      setAlert({
+        show: true,
+        type: "success",
+        message: res.data.message
+      });
 
       setTimeout(() => {
         onClose();
@@ -50,10 +63,28 @@ export default function ChangePasswordModal({ open, onClose }) {
         type: "error",
         text: err.response?.data?.message || "Error inesperado",
       });
+      setLoading(false);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
+    <>
+    {/* ALERTA */}
+    {alert && (
+      <AlertMessage
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert(null)}
+      />
+    )}
+    {/* SPINNER EN PANTALLA COMPLETA */}
+    {loading && (
+      <div className="fixed inset-0 z-[999] bg-black/30 backdrop-blur-sm flex items-center justify-center">
+        <Spinner />
+      </div>
+    )}
     <div
       onClick={handleBackdropClick}
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn"
@@ -125,5 +156,6 @@ export default function ChangePasswordModal({ open, onClose }) {
         </form>
       </div>
     </div>
+    </>
   );
 }
