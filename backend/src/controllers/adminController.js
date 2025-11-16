@@ -209,3 +209,22 @@ export const deleteParticipant = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ===============================
+//  ELIMINAR USUARIO COMPLETO
+// ===============================
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await user.destroy();
+
+    res.json({ message: "Usuario eliminado correctamente" });
+  } catch (err) {
+    console.error("deleteUser:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

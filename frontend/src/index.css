@@ -66,6 +66,17 @@ button:hover {
   transform: scale(1.04);
 }
 
+.btn-eye {
+  all: unset; /* resetea todo el CSS heredado */
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.btn-eye:hover {
+  transform: none;  /* evita el hover del botón principal */
+}
+
 /* Título */
 h1 {
   text-align: center;

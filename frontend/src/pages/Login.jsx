@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import AlertMessage from "../components/AlertMessage";
+import Input from "../components/Input";
 
 export default function Login() {
   const [phone, setPhone] = useState("");
@@ -11,6 +12,8 @@ export default function Login() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  
 
   const navigate = useNavigate();
 
@@ -77,7 +80,7 @@ export default function Login() {
                 required
                 maxLength={9}
               />
-              <input
+              {/* <input
                 className="input input-bordered w-full rounded-lg"
                 placeholder="Contraseña"
                 type="password"
@@ -85,7 +88,38 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 maxLength={255}
-              />
+              /> */}
+
+              <div className="relative w-full">
+                <input
+                  className="input input-bordered w-full rounded-lg pr-12"
+                  placeholder="Contraseña"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  maxLength={255}
+                />
+
+                {/* Botón del ojo dentro del input sin afectar estilos globales */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  style={{
+                    all: "unset",
+                    position: "absolute",
+                    right: "0.75rem",
+                    top: "40%",
+                    transform: "translateY(-50%)",
+                    cursor: "pointer",
+                    fontSize: "20px",
+                    lineHeight: 1
+                  }}
+                >
+                  {showPassword ? "👁️" : "🙈"}
+                </button>
+              </div>
 
               <button
                 className="w-full bg-green-700 text-white font-semibold py-3 rounded-lg hover:bg-green-800 transition transform hover:scale-[1.02] shadow-md"

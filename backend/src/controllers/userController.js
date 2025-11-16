@@ -1,5 +1,7 @@
 // src/controllers/userController.js
-import { Participant, GiftOption, Assignment } from "../models/index.js";
+import bcrypt from "bcryptjs";
+import { Participant, GiftOption, Assignment, User } from "../models/index.js";
+//import User from "../models/User.js";
 
 /**
  * User joins an event (creates participant with userId)
@@ -165,5 +167,31 @@ export const deleteGiftOption = async (req, res) => {
   } catch (error) {
     console.error("deleteGiftOption error:", error);
     return res.status(500).json({ message: "Error eliminando regalo" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    console.log(req.user)
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ message: "Campos incompletos" });
+
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Contraseña actual incorrecta" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Contraseña cambiada correctamente 🎄" });
+  } catch (err) {
+    console.error("changePassword:", err);
+    return res.status(500).json({ message: "Error en el servidor" });
   }
 };

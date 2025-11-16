@@ -63,6 +63,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteUser = async (userId) => {
+    if (!window.confirm("¿Eliminar este usuario PERMANENTEMENTE?")) return;
+
+    try {
+      await api.delete(`/admin/user/${userId}`);
+
+      // Quitar el usuario de la tabla sin recargar
+      setUsers(prev => prev.filter(u => u.id !== userId));
+
+      alert("Usuario eliminado correctamente ✔");
+    } catch (err) {
+      alert(err.response?.data?.message || "Error eliminando usuario");
+    }
+  };
+
+
   return (
     <div className="space-y-8 animate-fadeIn">
 
@@ -192,14 +208,25 @@ export default function AdminDashboard() {
                               {new Date(u.createdAt).toLocaleDateString()}
                             </td>
 
-                            <td className="py-3 px-4 text-center">
+                            <td className="py-3 px-4 text-center flex gap-2 justify-center">
+                              {/* RESET PASSWORD */}
                               <button
-                                className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 shadow-sm"
+                                className="px-3 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 shadow-sm"
                                 onClick={() => resetPassword(u.id)}
                               >
-                                Reset pass
+                                Reset
                               </button>
+
+                              {/* ELIMINAR USUARIO */}
+                              <button
+                                className="px-3 py-1 rounded !bg-red-600 text-white hover:bg-red-700 shadow-sm"
+                                onClick={() => deleteUser(u.id)}
+                              >
+                                Eliminar
+                              </button>
+
                             </td>
+                            
                           </tr>
                         ))}
                       </tbody>
