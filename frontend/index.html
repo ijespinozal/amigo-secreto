@@ -4,20 +4,39 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Amigo Secreto</title>
+
     <style>
       #musicBtn:hover {
         transform: scale(1.12);
         background: #b71c1c;
       }
+
+      .snowflake {
+        position: fixed;
+        top: -10px;
+        color: white;
+        animation-name: fall;
+        animation-timing-function: linear;
+        animation-iteration-count: 1;
+      }
+
+      @keyframes fall {
+        to {
+          transform: translateY(100vh);
+        }
+      }
     </style>
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- BOTÓN -->
     <button id="musicBtn" style="
       position: fixed;
-      bottom: 25px;
-      right: 25px;
+      bottom: 60px;
+      right: 20px;
       width: 60px;
       height: 60px;
       background: #d32f2f;
@@ -35,50 +54,90 @@
     ">
       🎵
     </button>
-    <audio id="bgMusic" loop autoplay>
-      <source src="src/assets/Navidad.mp3">
-    </audio>
+
+    <!-- AUDIO -->
+    <audio id="bgMusic" autoplay muted></audio>
   </body>
 
   <script>
+    /* ============================================================
+       🎵 LISTA SECUENCIAL DE CANCIONES
+    ============================================================ */
+
+    const songs = [
+      "src/assets/Navidad01.mp3",
+      "src/assets/Navidad02.mp3",
+      "src/assets/Navidad03.mp3"
+    ];
+
+    let currentSong = 0; // arranca en la primera canción
+
     const music = document.getElementById("bgMusic");
+
+    // Colocar la primera canción
+    music.src = songs[currentSong];
+
+
+    /* ============================================================
+       ⏭️ CAMBIAR A LA SIGUIENTE CUANDO TERMINE
+    ============================================================ */
+
+    music.addEventListener("ended", () => {
+      currentSong++;
+
+      // Si llega al final, vuelve a la primera
+      if (currentSong >= songs.length) {
+        currentSong = 0;
+      }
+
+      music.src = songs[currentSong];
+      music.play();
+    });
+
+
+    /* ============================================================
+       🔊 BOTÓN MUTE / UNMUTE
+    ============================================================ */
+
     const musicBtn = document.getElementById("musicBtn");
 
     musicBtn.addEventListener("click", () => {
       if (music.muted) {
         music.muted = false;
         music.play();
-        musicBtn.textContent = "🔇";
+        musicBtn.textContent = "🎵";
       } else {
         music.muted = true;
-        musicBtn.textContent = "🎵";
+        musicBtn.textContent = "🔇";
       }
     });
-    
+
+    // Autoplay al primer click
     document.addEventListener("click", function autoPlayOnce() {
       music.muted = false;
       music.play();
       document.removeEventListener("click", autoPlayOnce);
     });
 
+
+    /* ============================================================
+       ❄️ NIEVE NAVIDEÑA
+    ============================================================ */
+
     function createSnowflake() {
       const snowflake = document.createElement("span");
       snowflake.className = "snowflake";
       snowflake.textContent = Math.random() > 0.5 ? "❆" : "❅";
-      // Posición horizontal aleatoria
+
       snowflake.style.left = Math.random() * 100 + "vw";
-      // Tamaño aleatorio
       snowflake.style.fontSize = Math.random() * 15 + 10 + "px";
-      // Caída más rápida o lenta
       snowflake.style.animationDuration = 4 + Math.random() * 6 + "s";
+
       document.body.appendChild(snowflake);
-      // Eliminar el copo después de terminar la animación
-      setTimeout(() => {
-        snowflake.remove();
-      }, 10000);
+
+      setTimeout(() => snowflake.remove(), 10000);
     }
-    // Crear nuevos copos constantemente
+
     setInterval(createSnowflake, 300);
   </script>
-
 </html>

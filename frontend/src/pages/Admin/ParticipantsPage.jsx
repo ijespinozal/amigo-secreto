@@ -41,6 +41,18 @@ export default function ParticipantsPage() {
     }
   };
 
+  const remove = async (participantId) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este participante?")) return;
+
+    try {
+      await api.delete(`/admin/participant/${participantId}`);
+      load();
+    } catch (err) {
+      alert("Error eliminando participante");
+    }
+  };
+
+
   return (
     <div className="space-y-8 p-4">
 
@@ -85,7 +97,7 @@ export default function ParticipantsPage() {
       </div>
 
       {/* LISTA DE PARTICIPANTES */}
-      <ParticipantList participants={participants} />
+      <ParticipantList participants={participants} onRemove={remove} />
 
     </div>
   );

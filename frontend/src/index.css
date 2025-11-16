@@ -32,7 +32,7 @@ body {
 /* Caja principal (ej: login) */
 .card {
   width: 350px;
-  margin: 60px auto;
+  margin: 30px auto;
   padding: 30px;
   backdrop-filter: blur(8px);
   border-radius: 20px;
@@ -92,3 +92,28 @@ h1 {
 main {
   flex: 1; /* Esto empuja el footer hacia abajo */
 }
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to   { opacity: 1; transform: translate(-50%, 0px); }
+}
+
+.animate-fadeInDown {
+  animation: fadeInDown 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.35s ease-out;
+}
+

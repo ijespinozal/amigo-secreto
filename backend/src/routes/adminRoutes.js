@@ -1,6 +1,6 @@
 // src/routes/adminRoutes.js
 import express from "express";
-import { createEvent, getEvents, addParticipant, getParticipants, runDraw } from "../controllers/adminController.js";
+import { createEvent, getEvents, addParticipant, getParticipants, runDraw, getAllUsers, resetPassword, deleteParticipant } from "../controllers/adminController.js";
 import { protect, onlyAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -10,5 +10,8 @@ router.get("/events", protect, onlyAdmin, getEvents);
 router.post("/participant", protect, onlyAdmin, addParticipant);
 router.get("/event/:eventId/participants", protect, onlyAdmin, getParticipants);
 router.post("/draw", protect, onlyAdmin, runDraw);
+router.get("/users", protect, onlyAdmin, getAllUsers);
+router.post("/reset-password", protect, onlyAdmin, resetPassword);
+router.delete("/participant/:id", protect, onlyAdmin, deleteParticipant);
 
 export default router;

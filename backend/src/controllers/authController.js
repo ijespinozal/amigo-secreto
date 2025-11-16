@@ -13,7 +13,7 @@ export const register = async (req, res) => {
     }
 
     const existing = await User.findOne({ where: { phone } });
-    if (existing) return res.status(400).json({ message: "Phone already registered" });
+    if (existing) return res.status(400).json({ message: "El número ya ha sido registrado." });
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ phone, password: hashed, firstName, lastName, role: "user" });
@@ -39,10 +39,10 @@ export const login = async (req, res) => {
     if (!phone || !password) return res.status(400).json({ message: "Missing fields" });
 
     const user = await User.findOne({ where: { phone } });
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(400).json({ message: "Invalid credentials" });
+    if (!ok) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
 
     const token = jwt.sign({ id: user.id }, jwtSecret, { expiresIn: "7d" });
     const userSafe = { id: user.id, phone: user.phone, firstName: user.firstName, lastName: user.lastName, role: user.role };

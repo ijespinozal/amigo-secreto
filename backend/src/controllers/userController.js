@@ -44,7 +44,7 @@ export const addGiftOption = async (req, res) => {
     if (!title) return res.status(400).json({ message: "Title required" });
 
     const participant = await Participant.findOne({ where: { userId } });
-    if (!participant) return res.status(400).json({ message: "User not a participant" });
+    if (!participant) return res.status(400).json({ message: "No perteneces a ningun grupo. Por favor, comunique al administrador." });
 
     const gift = await GiftOption.create({
       participantId: participant.id,

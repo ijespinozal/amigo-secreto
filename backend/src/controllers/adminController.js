@@ -1,4 +1,5 @@
 // src/controllers/adminController.js
+import bcrypt from "bcryptjs";
 import { Event, Participant, User, Assignment, sequelize } from "../models/index.js";
 
 /**
@@ -147,6 +148,64 @@ export const runDraw = async (req, res) => {
   } catch (err) {
     console.error("runDraw:", err);
     await t.rollback();
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ===============================
+//  LISTAR TODOS LOS USUARIOS
+// ===============================
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ["id", "phone", "firstName", "lastName", "role", "createdAt"]
+    });
+
+    res.json({ users });
+  } catch (err) {
+    console.error("getAllUsers:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// ===============================
+//  RESET PASSWORD DE UN USUARIO
+// ===============================
+export const resetPassword = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Nueva contraseña por defecto
+    const newPass = "123456";
+    const hashed = await bcrypt.hash(newPass, 10);
+
+    user.password = hashed;
+    await user.save();
+
+    res.json({ message: `Contraseña reseteada a ${newPass}` });
+  } catch (err) {
+    console.error("resetPassword:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteParticipant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const participant = await Participant.findByPk(id);
+    if (!participant) return res.status(404).json({ message: "Participant not found" });
+
+    await participant.destroy();
+
+    res.json({ message: "Participant deleted" });
+  } catch (err) {
+    console.error("deleteParticipant:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

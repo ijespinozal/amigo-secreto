@@ -32,7 +32,7 @@ export default function Header() {
               ) : (
                 <Link
                   to="/user/home"
-                  className="px-4 py-2 bg-green-700 text-white rounded-lg font-semibold hover:bg-green-800 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
+                  className="px-4 py-2 bg-green-700 text-white text-center rounded-lg font-semibold hover:bg-green-800 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
                 >
                   Mi espacio
                 </Link>
@@ -40,7 +40,7 @@ export default function Header() {
 
               <button
                 onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
+                className="px-4 py-2 bg-red-600 text-white text-center rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
               >
                 Salir
               </button>

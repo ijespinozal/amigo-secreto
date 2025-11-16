@@ -18,9 +18,11 @@ import MySecret from "./pages/User/MySecret";
 
 export default function App() {
   return (
-    <div className="app-container">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="container mx-auto p-4">
+
+      {/* MAIN crece automáticamente hasta empujar el footer al final */}
+      <main className="flex-grow container mx-auto p-4">
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -58,7 +60,9 @@ export default function App() {
           <Route path="*" element={<Login />} />
         </Routes>
       </main>
+
       <Footer />
     </div>
   );
 }
+
