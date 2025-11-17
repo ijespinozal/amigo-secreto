@@ -21,6 +21,19 @@ export default function Register() {
     setLoading(true);
     setAlert({ show: false, type: "", message: "" });
 
+    // 🔍 VALIDACIÓN DE CELULAR (solo Perú: 9 dígitos)
+    const phoneRegex = /^[0-9]{9}$/;
+
+    if (!phoneRegex.test(phone)) {
+      setLoading(false);
+      setAlert({
+        show: true,
+        type: "error",
+        message: "Ingrese un número de celular válido de 9 dígitos."
+      });
+      return;
+    }
+
     try {
       await api.post("/auth/register", { 
         phone, 
@@ -76,6 +89,7 @@ export default function Register() {
               value={firstName}
               onChange={e => setFirst(e.target.value)}
               required
+              maxLength={255}
             />
 
             <input 
@@ -84,6 +98,7 @@ export default function Register() {
               value={lastName}
               onChange={e => setLast(e.target.value)}
               required
+              maxLength={255}
             />
 
             <input 
@@ -92,6 +107,7 @@ export default function Register() {
               value={phone}
               onChange={e => setPhone(e.target.value)}
               required
+              maxLength={9}
             />
 
             <input 
@@ -101,6 +117,7 @@ export default function Register() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              maxLength={255}
             />
 
             <button className="btn btn-primary w-full" disabled={loading}>

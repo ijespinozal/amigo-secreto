@@ -33,7 +33,13 @@ export default function Header() {
 
         {/* LOGO */}
         <Link
-          to="/"
+          to={
+            user
+              ? user.role === "admin"
+                ? "/admin/dashboard"
+                : "/user/home"
+              : "/"
+          }
           className="flex items-center gap-2 text-2xl md:text-3xl font-extrabold text-green-700 hover:text-green-800 transition"
         >
           🎁 <span>Amigo Secreto</span>
@@ -91,7 +97,7 @@ export default function Header() {
               {/* BOTÓN SALIR */}
               <button
                 onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white text-center rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
+                className="px-4 py-2 !bg-red-600 text-white text-center rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
               >
                 Salir
               </button>
