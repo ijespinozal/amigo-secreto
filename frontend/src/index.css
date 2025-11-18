@@ -32,7 +32,7 @@ body {
 /* Caja principal (ej: login) */
 .card {
   width: 350px;
-  margin: 30px auto;
+  margin: 25px auto;
   padding: 30px;
   backdrop-filter: blur(8px);
   border-radius: 20px;
@@ -128,3 +128,46 @@ main {
   animation: fadeInUp 0.35s ease-out;
 }
 
+
+/* ============================
+   ⭐ Banner Navideño Animado ⭐
+   ============================ */
+
+/* ============================
+   ⭐ Banner Navideño Infinito ⭐
+   ============================ */
+
+.christmas-banner-container {
+  width: 100%;
+  overflow: hidden;
+  padding: 6px 0;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+  position: relative;
+  white-space: nowrap;
+}
+
+.christmas-banner-track {
+  display: flex;
+  width: max-content;
+  animation: scroll-marquee 15s linear infinite;
+}
+
+.christmas-banner {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fffce6;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+  padding-right: 60px; /* separación entre repeticiones */
+}
+
+@keyframes scroll-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
