@@ -195,3 +195,77 @@ export const changePassword = async (req, res) => {
     return res.status(500).json({ message: "Error en el servidor" });
   }
 };
+
+//Obtener donaciones del evento al que pertenece el usuario
+export const getEventDonations = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1️⃣ Buscar si el usuario es participante de algún evento
+    const participant = await Participant.findOne({
+      where: { userId }
+    });
+
+    if (!participant) {
+      return res.status(404).json({
+        message: "No perteneces a ningún evento"
+      });
+    }
+
+    const eventId = participant.eventId;
+
+    // 2️⃣ Buscar participantes del mismo evento con sus regalos
+    const participants = await Participant.findAll({
+      where: { eventId },
+      include: [
+        {
+          model: GiftOption,
+          required: false
+        }
+      ]
+    });
+
+    // 3️⃣ Construir respuesta
+    const result = participants.flatMap(p =>
+      (p.GiftOptions || [])
+        .filter(g => g.donation && g.donation.trim() !== "")
+        .map(g => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          donation: g.donation
+        }))
+    );
+
+    return res.json(result);
+
+  } catch (error) {
+    console.error("getEventDonations error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Obtener solo eventId y participantId del usuario
+export const getMyEventInfo = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const participant = await Participant.findOne({
+      where: { userId }
+    });
+
+    if (!participant) {
+      return res.status(404).json({
+        message: "No eres participante de ningún evento"
+      });
+    }
+
+    return res.json({
+      participantId: participant.id,
+      eventId: participant.eventId
+    });
+
+  } catch (error) {
+    console.error("getMyEventInfo error:", error);
+    return res.status(500).json({ message: "Error obteniendo info del evento" });
+  }
+};
