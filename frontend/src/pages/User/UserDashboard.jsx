@@ -54,7 +54,7 @@ export default function UserDashboard() {
     const diff = eventDate - today;
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
-    setDaysLeft(days + 1);
+    setDaysLeft(days);
     setDaysCalendar(calendayDay)
   }, [eventId]);
 
