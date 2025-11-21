@@ -269,3 +269,47 @@ export const getMyEventInfo = async (req, res) => {
     return res.status(500).json({ message: "Error obteniendo info del evento" });
   }
 };
+
+
+export const updateGiftOption = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const giftId = req.params.id;
+    const { title, note, donation, link } = req.body;
+
+    // 1. Buscar participante asociado al usuario
+    const participant = await Participant.findOne({
+      where: { userId }
+    });
+
+    if (!participant) {
+      return res.status(404).json({ message: "No eres participante de ningún evento" });
+    }
+
+    // 2. Buscar el regalo asegurando que le pertenece
+    const gift = await GiftOption.findOne({
+      where: { id: giftId, participantId: participant.id }
+    });
+
+    if (!gift) {
+      return res.status(404).json({ message: "Regalo no encontrado o no te pertenece" });
+    }
+
+    // 3. Actualizar valores
+    gift.title = title ?? gift.title;
+    gift.note = note ?? gift.note;
+    gift.donation = donation ?? gift.donation;
+    gift.link = link ?? gift.link;
+
+    await gift.save();
+
+    return res.json({
+      message: "Regalo actualizado correctamente",
+      gift
+    });
+
+  } catch (error) {
+    console.error("updateGiftOption error:", error);
+    return res.status(500).json({ message: "Error actualizando regalo" });
+  }
+};

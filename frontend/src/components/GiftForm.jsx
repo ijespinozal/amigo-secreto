@@ -86,7 +86,7 @@ export default function GiftForm({ onAdded }) {
         />
 
         <button className="btn btn-primary w-full" type="submit" disabled={loading}>
-          {loading ? <Spinner size="sm" /> : "🎄 Agregar opción"}
+          {loading ? <Spinner size="sm" /> : "🎄 Guardar opción"}
         </button>
 
       </form>

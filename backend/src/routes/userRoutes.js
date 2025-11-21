@@ -8,7 +8,8 @@ import {
   deleteGiftOption,
   changePassword,
   getEventDonations,
-  getMyEventInfo
+  getMyEventInfo,
+  updateGiftOption
 } from "../controllers/userController.js";
 
 import { protect } from "../middlewares/authMiddleware.js";
@@ -23,5 +24,6 @@ router.delete("/gift/:id", protect, deleteGiftOption);
 router.post("/change-password", protect, changePassword);
 router.get("/donations", protect, getEventDonations);
 router.get("/event-info", protect, getMyEventInfo);
+router.put("/gift/:id", protect, updateGiftOption);
 
 export default router;
