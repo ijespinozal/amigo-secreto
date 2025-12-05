@@ -5,6 +5,72 @@ import { useEffect, useState } from "react";
 import api from "../../api";
 import TimelineModal from "../../components/TimelineModal";
 
+// Imágenes de premios (Rutas desde public/imagenes)
+const prizeImages = [
+  "/images/AUDIFONOP9.jpg",
+  "/images/HUEVOS.jpg",
+  "/images/LENTES.jpg",
+  "/images/LENTESSUNGLASSES.jpg",
+  "/images/MINIVENTILADOR.jpg",
+  "/images/MORRAL.jpg",
+  "/images/SECADORA.jpg",
+  "/images/PARLANTE.jpg",
+  "/images/VENTILADOR.jpg",
+  "/images/TRAGOS.jpg"
+];
+
+// Componente Interno del Carrusel
+const PrizeCarousel = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % prizeImages.length);
+    }, 3000); // Cambia imagen cada 3 segundos
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="relative w-full h-64 md:h-80 rounded-2xl overflow-hidden shadow-2xl border-4 border-[#ffdf80]/50 group">
+      {/* Fondo decorativo */}
+      <div className="absolute inset-0 bg-[#790000]"></div>
+      
+      {/* Imagen */}
+      <img 
+        src={prizeImages[currentIndex]} 
+        alt="Premio Navideño" 
+        className="w-full h-full object-contain md:object-contain transition-all duration-700 ease-in-out transform scale-100 group-hover:scale-105"
+      />
+
+      {/* Overlay Navideño inferior */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 flex justify-between items-end">
+        <div>
+          <h4 className="text-[#ffdf80] font-bold text-lg flex items-center gap-2">
+            <span className="animate-bounce">🎁</span> Premios del Evento
+          </h4>
+          <p className="text-white/90 text-sm">¡Mira lo que puedes ganar!</p>
+        </div>
+        
+        {/* Indicadores (puntitos) */}
+        <div className="flex gap-1 mb-1">
+          {prizeImages.map((_, idx) => (
+            <div 
+              key={idx}
+              className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                idx === currentIndex ? "bg-[#0a9400] w-6" : "bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Decoración Esquinas */}
+      <div className="absolute top-2 left-2 text-2xl">❄️</div>
+      <div className="absolute top-2 right-2 text-2xl">✨</div>
+    </div>
+  );
+};
+
 export default function UserDashboard() {
   const { user } = useAuth();
   const [daysLeft, setDaysLeft] = useState(0);
@@ -141,6 +207,11 @@ export default function UserDashboard() {
               </p>
             </Card>
           </Link>
+
+          {/* 🎡 CARRUSEL DE PREMIOS (Ubicado debajo de las tarjetas) */}
+          <div className="col-span-1 md:col-span-2"> 
+             <PrizeCarousel />
+          </div>
 
           <div className="mt-6 p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/25 shadow-2xl animate-fadeInUp text-white relative overflow-hidden col-span-1 md:col-span-2">
 

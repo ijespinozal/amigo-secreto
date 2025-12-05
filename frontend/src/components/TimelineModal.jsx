@@ -116,14 +116,16 @@ export default function TimelineModal({ isOpen, onClose }) {
                     <p className="text-gray-200 text-sm italic mb-2">{act.description}</p>
                   )}
 
-                  <div className="mt-3 bg-black/20 rounded-lg p-3">
-                    <p className="text-xs text-[#ffdf80] font-bold uppercase mb-1">🏆 Premios:</p>
-                    <ul className="list-disc list-inside text-sm text-white/90 space-y-0.5">
-                      {act.prizes.map((prize, idx) => (
-                        <li key={idx}>{prize}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {act.title !== "INTERCAMBIO DE REGALOS" && (
+                    <div className="mt-3 bg-black/20 rounded-lg p-3">
+                      <p className="text-xs text-[#ffdf80] font-bold uppercase mb-1">🏆 Premios:</p>
+                      <ul className="list-disc list-inside text-sm text-white/90 space-y-0.5">
+                        {act.prizes.map((prize, idx) => (
+                          <li key={idx}>{prize}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {act.link && (
                     <a 
