@@ -19,7 +19,7 @@ const activities = [
   },
   {
     time: "7:00 p. m.",
-    title: "BINGO (EVENTO PERSONALIZADO)",
+    title: "BINGO",
     link: null,
     prizes: ["1 MORRAL"],
     participants: "TODOS",
