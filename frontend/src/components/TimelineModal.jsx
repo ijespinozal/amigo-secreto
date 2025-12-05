@@ -49,6 +49,14 @@ const activities = [
     prizes: ["1 SECADORA DE CABELLO", "1 PARLANTE INALAMBRICO"],
     participants: "TODOS",
     icon: "🌑"
+  },
+  {
+    time: "9:30 p. m.",
+    title: "INTERCAMBIO DE REGALOS",
+    link: null,
+    prizes: [],
+    participants: "TODOS",
+    icon: "🎁"
   }
 ];
 
