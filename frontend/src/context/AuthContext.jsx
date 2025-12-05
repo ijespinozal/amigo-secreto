@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("hasSeenChristmasTimeline");
     setToken(null);
     setUser(null);
     navigate("/");
