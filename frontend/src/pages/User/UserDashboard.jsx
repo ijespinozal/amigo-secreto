@@ -7,6 +7,8 @@ import TimelineModal from "../../components/TimelineModal";
 
 // Imágenes de premios (Rutas desde public/imagenes)
 const prizeImages = [
+  "/images/CANASTAUNO.png",
+  "/images/CANASTADOS.png",
   "/images/AUDIFONOP9.jpg",
   "/images/HUEVOS.jpg",
   "/images/LENTES.jpg",
