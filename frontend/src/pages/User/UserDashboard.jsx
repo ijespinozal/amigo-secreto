@@ -128,8 +128,8 @@ export default function UserDashboard() {
         calendayDay
 
     if (eventId === 1) {
-      eventDate = new Date("2025-12-07");
-      calendayDay = 7
+      eventDate = new Date("2025-12-25");
+      calendayDay = 25
     } else if (eventId === 3) {
       eventDate = new Date("2025-12-20");
       calendayDay = 20
