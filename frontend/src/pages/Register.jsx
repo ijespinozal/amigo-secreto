@@ -1,6 +1,7 @@
 import { useState } from "react";
-import api from "../api";
+import api, { getErrorMessage } from "../api";
 import { useNavigate } from "react-router-dom";
+import { PASSWORD_MIN_LENGTH, PHONE_PATTERN } from "../config/rules";
 
 import Spinner from "../components/Spinner";
 import AlertMessage from "../components/AlertMessage";
@@ -22,14 +23,22 @@ export default function Register() {
     setAlert({ show: false, type: "", message: "" });
 
     // 🔍 VALIDACIÓN DE CELULAR (solo Perú: 9 dígitos)
-    const phoneRegex = /^[0-9]{9}$/;
-
-    if (!phoneRegex.test(phone)) {
+    if (!PHONE_PATTERN.test(phone)) {
       setLoading(false);
       setAlert({
         show: true,
         type: "error",
         message: "Ingrese un número de celular válido de 9 dígitos."
+      });
+      return;
+    }
+
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setLoading(false);
+      setAlert({
+        show: true,
+        type: "error",
+        message: `La contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres.`
       });
       return;
     }
@@ -51,11 +60,10 @@ export default function Register() {
       setTimeout(() => navigate("/"), 1500);
 
     } catch (err) {
-      console.error(err);
       setAlert({
         show: true,
         type: "error",
-        message: err.response?.data?.message || "Error al registrar"
+        message: getErrorMessage(err, "Error al registrar")
       });
     }
 
@@ -89,35 +97,37 @@ export default function Register() {
               value={firstName}
               onChange={e => setFirst(e.target.value)}
               required
-              maxLength={255}
+              maxLength={100}
             />
 
-            <input 
+            <input
               className="input input-bordered w-full"
               placeholder="Apellidos"
               value={lastName}
               onChange={e => setLast(e.target.value)}
               required
-              maxLength={255}
+              maxLength={100}
             />
 
-            <input 
+            <input
               className="input input-bordered w-full"
-              placeholder="Teléfono"
+              placeholder="Teléfono (9 dígitos)"
+              inputMode="numeric"
               value={phone}
-              onChange={e => setPhone(e.target.value)}
+              onChange={e => setPhone(e.target.value.replace(/\D/g, ""))}
               required
               maxLength={9}
             />
 
-            <input 
+            <input
               className="input input-bordered w-full"
-              placeholder="Contraseña"
+              placeholder={`Contraseña (mín. ${PASSWORD_MIN_LENGTH} caracteres)`}
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              maxLength={255}
+              minLength={PASSWORD_MIN_LENGTH}
+              maxLength={72}
             />
 
             <button className="btn btn-primary w-full" disabled={loading}>

@@ -9,6 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+
+# Variables de entorno: .env.development y .env.production se versionan (no
+# tienen secretos); los overrides locales no.
+.env
+.env.local
+.env.*.local
 dist-ssr
 *.local
 

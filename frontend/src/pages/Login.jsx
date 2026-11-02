@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api";
+import api, { getErrorMessage } from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
@@ -9,11 +9,10 @@ import Input from "../components/Input";
 export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
+  const { login, sessionExpired, dismissSessionExpired } = useAuth();
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
 
   const navigate = useNavigate();
 
@@ -37,7 +36,7 @@ export default function Login() {
 
       setAlert({
         type: "error",
-        message: err.response?.data?.message || "Error en login ❌"
+        message: getErrorMessage(err, "Error en login ❌")
       });
 
     } finally {
@@ -48,11 +47,17 @@ export default function Login() {
   return (
     <>
       {/* ALERTA */}
-      {alert && (
+      {alert ? (
         <AlertMessage
           type={alert.type}
           message={alert.message}
           onClose={() => setAlert(null)}
+        />
+      ) : sessionExpired && (
+        <AlertMessage
+          type="error"
+          message="Tu sesión expiró. Vuelve a iniciar sesión."
+          onClose={dismissSessionExpired}
         />
       )}
 
@@ -63,7 +68,7 @@ export default function Login() {
         </div>
       )}
 
-      <div className="flex justify-center px-6 py-10 md:py-20 bg-[url('/bg-christmas.jpg')] bg-cover bg-center items-start">
+      <div className="flex justify-center px-6 py-10 md:py-20 items-start">
         <div className="w-full max-w-md drop-shadow-xl">
 
           <div className="bg-white/90 p-8 rounded-2xl border border-red-200 shadow-lg">

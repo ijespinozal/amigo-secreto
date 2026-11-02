@@ -1,30 +1,28 @@
 import GiftForm from "../../components/GiftForm";
-import { useState, useEffect } from "react";
-import api from "../../api";
+import { useState } from "react";
+import api, { getErrorMessage } from "../../api";
 import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
 import AlertMessage from "../../components/AlertMessage";
 import EditGiftModal from "../../components/EditGiftModal";
+import Spinner from "../../components/Spinner";
+import useApiData from "../../hooks/useApiData";
+import useEvents from "../../hooks/useEvents";
 
 export default function MyGiftForm() {
-  const [gifts, setGifts] = useState([]);
+  const { ready, selectedEventId, error: eventsError, reload: reloadEvents } = useEvents();
+  const hasEvent = ready && selectedEventId !== null;
+
+  const { data, error, reload } = useApiData("/user/gifts", { enabled: hasEvent, scope: selectedEventId });
+  const gifts = data ?? [];
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editGift, setEditGift] = useState(null);
 
-  const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
-
-  const load = async () => {
-    try {
-      const res = await api.get("/user/gifts");
-      setGifts(res.data);
-    } catch (err) {
-      console.warn("No hay endpoint GET /user/gifts");
-    }
-  };
 
   const removeGift = (id) => {
     setDeleteId(id);
@@ -39,33 +37,42 @@ export default function MyGiftForm() {
         type: "success",
         message: "Se eliminó con éxito."
       });
-      await load();
+      reload();
     } catch (err) {
       setAlert({
         show: true,
         type: "error",
-        message: "Ocurrió un error. Por favor, comunicarse con el administrador."
+        message: getErrorMessage(err, "Ocurrió un error. Por favor, comunicarse con el administrador.")
       });
-      console.error(err);
     }
     setConfirmOpen(false);
     setDeleteId(null);
   };
 
-  // const removeGift = async (id) => {
-  //   const confirmDelete = window.confirm("¿Seguro que deseas eliminar esta opción?");
-  //   if (!confirmDelete) return;
+  if (!ready) {
+    return (
+      <div className="flex justify-center items-center h-40">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
-  //   try {
-  //     await api.delete(`/user/gift/${id}`);
-  //     await load();
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert("Error eliminando opción");
-  //   }
-  // };
+  if (eventsError) {
+    return (
+      <div className="alert alert-error shadow-md flex flex-wrap items-center justify-between gap-2 text-lg mt-4">
+        <span>⚠️ No pudimos cargar tus eventos. Revisa tu conexión e inténtalo de nuevo.</span>
+        <button className="btn btn-sm" onClick={reloadEvents}>Reintentar</button>
+      </div>
+    );
+  }
 
-  useEffect(() => { load(); }, []);
+  if (!hasEvent) {
+    return (
+      <div className="alert alert-info shadow-md flex items-center gap-2 text-lg mt-4">
+        🎄 Aún no perteneces a ningún evento. Cuando el administrador te agregue podrás registrar tus opciones de regalo.
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -88,12 +95,17 @@ export default function MyGiftForm() {
 
           {/* FORM */}
           <Card title="Agregar nueva opción">
-            <GiftForm onAdded={load} />
+            <GiftForm onAdded={reload} giftsCount={gifts.length} />
           </Card>
 
           {/* LISTA */}
           <Card title="Tus opciones registradas">
-            {gifts.length === 0 ? (
+            {error ? (
+              <div className="text-sm text-red-600 flex items-center justify-between gap-2">
+                <span>{getErrorMessage(error, "No pudimos cargar tus opciones.")}</span>
+                <button className="btn btn-xs" onClick={reload}>Reintentar</button>
+              </div>
+            ) : gifts.length === 0 ? (
               <p className="text-sm opacity-70">Aún no agregaste opciones.</p>
             ) : (
               <div className="space-y-3">
@@ -158,7 +170,7 @@ export default function MyGiftForm() {
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0
                             01.117-.993L9 5h6a1 1 0 011 1v1M4 7h16"
                           />
                         </svg>
@@ -179,6 +191,7 @@ export default function MyGiftForm() {
         />
 
         <EditGiftModal
+          key={editGift?.id ?? "none"}
           open={editOpen}
           gift={editGift}
           onClose={() => {
@@ -195,7 +208,7 @@ export default function MyGiftForm() {
                 message: "🎄 ¡Regalo actualizado!"
               });
 
-              await load();
+              reload();
               setEditOpen(false);
               setEditGift(null);
 
@@ -203,7 +216,7 @@ export default function MyGiftForm() {
               setAlert({
                 show: true,
                 type: "error",
-                message: "Error actualizando regalo"
+                message: getErrorMessage(err, "Error actualizando regalo")
               });
             }
           }}

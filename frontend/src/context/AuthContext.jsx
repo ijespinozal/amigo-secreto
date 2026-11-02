@@ -1,8 +1,9 @@
-import React, { createContext, useEffect, useState } from "react";
-import api from "../api";
+import React, { useCallback, useEffect, useState } from "react";
+import { AUTH_EXPIRED_EVENT } from "../api";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "./contexts";
 
-export const AuthContext = createContext();
+const SESSION_KEYS = ["token", "user", "hasSeenChristmasTimeline", "selectedEventId"];
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -10,31 +11,43 @@ export function AuthProvider({ children }) {
     const u = localStorage.getItem("user");
     return u ? JSON.parse(u) : null;
   });
+  // Aviso de "sesión expirada" para el login. Vive aquí y no en el estado de
+  // la navegación: al limpiar el usuario, PrivateRoute redirige por su cuenta
+  // y el estado de la ruta podría perderse según el orden de los renders.
+  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (token) api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    else delete api.defaults.headers.common["Authorization"];
-  }, [token]);
 
   const login = (tokenVal, userObj) => {
     localStorage.setItem("token", tokenVal);
     localStorage.setItem("user", JSON.stringify(userObj));
     setToken(tokenVal);
     setUser(userObj);
+    setSessionExpired(false);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("hasSeenChristmasTimeline");
+  /** @param {{ expired?: boolean }} [options] expired: la sesión venció (se avisa en el login) */
+  const logout = useCallback(({ expired = false } = {}) => {
+    SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
     setToken(null);
     setUser(null);
-    navigate("/");
-  };
+    setSessionExpired(expired);
+    navigate("/", { replace: true });
+  }, [navigate]);
+
+  const dismissSessionExpired = useCallback(() => setSessionExpired(false), []);
+
+  // Token vencido o inválido (detectado por el interceptor de api.js).
+  useEffect(() => {
+    const handleExpired = () => {
+      // Varias peticiones pueden fallar a la vez: solo la primera cierra la sesión.
+      if (localStorage.getItem("token")) logout({ expired: true });
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpired);
+  }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, logout, sessionExpired, dismissSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );

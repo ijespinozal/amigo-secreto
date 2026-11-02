@@ -1,50 +1,53 @@
-import { useEffect, useState } from "react";
-import api from "../../api";
+import { getErrorCode } from "../../api";
 import Card from "../../components/Card";
 import Spinner from "../../components/Spinner";
-import AlertMessage from "../../components/AlertMessage";
+import useApiData from "../../hooks/useApiData";
+import useEvents from "../../hooks/useEvents";
+
+const NotParticipant = () => (
+  <div className="alert alert-info shadow-md flex items-center gap-2 text-lg mt-4">
+    🎄 Aún no perteneces a ningún evento. Comunícate con el administrador para que te agregue.
+  </div>
+);
 
 export default function MySecret() {
-  const [secret, setSecret] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+  const { ready, selectedEventId, error: eventsError, reload: reloadEvents } = useEvents();
+  const { data: secret, error, loading, reload } = useApiData("/user/secret-friend", {
+    enabled: ready && selectedEventId !== null,
+    scope: selectedEventId,
+  });
 
-  const load = async () => {
-    try {
-      const res = await api.get("/user/secret-friend");
-      setSecret(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  // 🌟 LOADING CENTRAL CON SPINNER
-  if (loading)
+  // 🌟 CARGANDO
+  if (!ready || (selectedEventId !== null && !secret && !error)) {
     return (
       <div className="flex justify-center items-center h-40">
         <Spinner size="lg" />
       </div>
     );
+  }
 
-  // 🌟 ALERTA SI AÚN NO HAY SORTEO
-  if (!secret || secret.revealed === false) {
+  // 🌟 NO PERTENECE A NINGÚN EVENTO
+  if ((!eventsError && selectedEventId === null) || getErrorCode(error) === "NOT_PARTICIPANT") {
+    return <NotParticipant />;
+  }
+
+  // 🌟 ERROR DEL SERVIDOR / CONEXIÓN
+  if (error || eventsError) {
     return (
-      <div className="relative">
-        {alert.show && (
-          <AlertMessage
-            type={alert.type}
-            message={alert.message}
-            onClose={() => setAlert({ show: false })}
-          />
-        )}
+      <div className="alert alert-error shadow-md flex flex-wrap items-center justify-between gap-2 text-lg mt-4">
+        <span>⚠️ No pudimos cargar tu amigo secreto. Revisa tu conexión e inténtalo de nuevo.</span>
+        <button className="btn btn-sm" onClick={eventsError ? reloadEvents : reload} disabled={loading}>
+          {loading ? "Reintentando..." : "Reintentar"}
+        </button>
+      </div>
+    );
+  }
 
-        <div className="alert alert-warning shadow-md flex items-center gap-2 text-lg mt-4">
-          🎅 A la espera del sorteo...
-        </div>
+  // 🌟 AÚN NO HAY SORTEO
+  if (!secret.revealed) {
+    return (
+      <div className="alert alert-warning shadow-md flex items-center gap-2 text-lg mt-4">
+        🎅 A la espera del sorteo... Te avisaremos aquí cuando tu amigo secreto esté listo.
       </div>
     );
   }
@@ -52,16 +55,6 @@ export default function MySecret() {
   // 🌟 SI HAY AMIGO SECRETO MOSTRARLO
   return (
     <div className="animate-fadeIn relative">
-
-      {/* ALERTA */}
-      {alert.show && (
-        <AlertMessage
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert({ show: false })}
-        />
-      )}
-
       <Card title="🎁 Tu amigo secreto">
         <div className="space-y-3">
 
@@ -81,28 +74,32 @@ export default function MySecret() {
           </h3>
 
           {/* Lista de regalos */}
-          <div className="space-y-2">
-            {secret.gifts.map(g => (
-              <div 
-                key={g.id} 
-                className="p-3 bg-base-200 rounded shadow hover:bg-base-300 transition"
-              >
-                <strong className="block text-lg">{g.title}</strong>
-                <p className="text-sm">{g.note}</p>
+          {secret.gifts.length === 0 ? (
+            <p className="text-sm opacity-70">Tu amigo secreto aún no registró opciones de regalo.</p>
+          ) : (
+            <div className="space-y-2">
+              {secret.gifts.map(g => (
+                <div
+                  key={g.id}
+                  className="p-3 bg-base-200 rounded shadow hover:bg-base-300 transition"
+                >
+                  <strong className="block text-lg">{g.title}</strong>
+                  <p className="text-sm">{g.note}</p>
 
-                {g.link && (
-                  <a 
-                    href={g.link} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-primary text-sm underline"
-                  >
-                    Ver link
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
+                  {g.link && (
+                    <a
+                      href={g.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary text-sm underline"
+                    >
+                      Ver link
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
         </div>
       </Card>

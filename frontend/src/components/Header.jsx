@@ -96,7 +96,7 @@ export default function Header() {
 
               {/* BOTÓN SALIR */}
               <button
-                onClick={logout}
+                onClick={() => logout()}
                 className="px-4 py-2 !bg-red-600 text-white text-center rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 shadow-sm text-sm md:text-base"
               >
                 Salir

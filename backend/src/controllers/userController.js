@@ -1,103 +1,96 @@
 // src/controllers/userController.js
+// Las rutas por evento reciben req.participant resuelto por loadParticipant
+// (cabecera X-Event-Id o el evento más reciente del usuario).
+// La entrada llega validada y normalizada por los esquemas de src/validation.
 import bcrypt from "bcryptjs";
-import { Participant, GiftOption, Assignment, User } from "../models/index.js";
-//import User from "../models/User.js";
+import { ERROR_CODES, MAX_GIFTS_PER_PARTICIPANT } from "../config/constants.js";
+import { Participant, GiftOption, Assignment, User, Event, sequelize } from "../models/index.js";
+import { MOST_RECENT_EVENT_ORDER } from "../middlewares/participantContext.js";
+
+const serializeEvent = (event) => ({
+  id: event.id,
+  title: event.title,
+  description: event.description,
+  date_event: event.date_event,
+  drawDone: event.drawDone,
+});
+
+const GIFT_NOT_FOUND = { message: "Regalo no encontrado o no te pertenece" };
+
+/** Regalo del usuario autenticado, sin importar en qué evento esté. */
+const findOwnGift = (giftId, userId) =>
+  GiftOption.findOne({
+    where: { id: giftId },
+    include: [{ model: Participant, attributes: ["userId"], where: { userId }, required: true }],
+  });
 
 /**
- * User joins an event (creates participant with userId)
- * POST /api/user/join
- * body: { eventId, phone?, firstName?, lastName?, email? }
+ * Eventos en los que participa el usuario, del más reciente al más antiguo.
+ * GET /api/user/events
  */
-export const joinEvent = async (req, res) => {
+export const getMyEvents = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { eventId, phone, firstName, lastName, email } = req.body;
-    if (!eventId) return res.status(400).json({ message: "eventId required" });
-
-    // if participant already exists for this event and user -> return it
-    let participant = await Participant.findOne({ where: { eventId, userId } });
-    if (participant) return res.json({ participant });
-
-    // else create participant and link to user
-    participant = await Participant.create({
-      eventId,
-      userId,
-      phone: phone || req.user.phone,
-      firstName: firstName || req.user.firstName,
-      lastName: lastName || req.user.lastName,
-      email: email || null
+    const participants = await Participant.findAll({
+      where: { userId: req.user.id },
+      include: [{ model: Event, required: true }],
+      order: MOST_RECENT_EVENT_ORDER,
     });
 
-    res.json({ message: "Joined event", participant });
+    res.json({
+      events: participants.map((p) => ({ participantId: p.id, ...serializeEvent(p.Event) })),
+    });
   } catch (err) {
-    console.error("joinEvent:", err);
+    console.error("getMyEvents:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 /**
- * Add gift option for logged-in user's participant
- * POST /api/user/gift
+ * Participante y evento actuales del usuario.
+ * GET /api/user/event-info
  */
-export const addGiftOption = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { title, note, donation, link } = req.body;
-    if (!title) return res.status(400).json({ message: "Title required" });
-
-    const participant = await Participant.findOne({ where: { userId } });
-    if (!participant) return res.status(400).json({ message: "No perteneces a ningun grupo. Por favor, comunique al administrador." });
-
-    const gift = await GiftOption.create({
-      participantId: participant.id,
-      title,
-      note: note || null,
-      donation: donation || null,
-      link: link || null
-    });
-
-    res.json({ message: "Gift added", gift });
-  } catch (err) {
-    console.error("addGiftOption:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+export const getMyEventInfo = (req, res) => {
+  const { participant } = req;
+  res.json({
+    participantId: participant.id,
+    eventId: participant.eventId,
+    event: serializeEvent(participant.Event),
+  });
 };
 
 /**
- * Get the logged-in user's secret friend (if draw done)
+ * Amigo secreto del usuario en el evento actual.
  * GET /api/user/secret-friend
+ *   200 { revealed: false }          -> aún no hay sorteo
+ *   200 { revealed: true, friend }   -> amigo secreto y sus regalos
+ *   404 NOT_PARTICIPANT              -> (loadParticipant) no pertenece a un evento
  */
 export const getMySecretFriend = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { participant } = req;
+    const event = serializeEvent(participant.Event);
 
-    // 1) find participant linked to this user
-    const participant = await Participant.findOne({ where: { userId } });
-    if (!participant) return res.status(400).json({ message: "User not a participant" });
+    const assignment = participant.Event.drawDone
+      ? await Assignment.findOne({
+          where: { giverParticipantId: participant.id },
+          include: [{ model: Participant, as: "receiver", include: [GiftOption] }],
+        })
+      : null;
 
-    // 2) find assignment where this participant is the giver
-    const assignment = await Assignment.findOne({
-      where: { giverParticipantId: participant.id },
-      include: [
-        { model: Participant, as: "receiver" }
-      ]
-    });
+    if (!assignment) return res.json({ revealed: false, event });
 
-    if (!assignment) return res.status(400).json({ message: "A la espera del sorteo" });
-
-    // get gifts of receiver
-    const gifts = await GiftOption.findAll({ where: { participantId: assignment.receiver.id } });
-
+    const { receiver } = assignment;
     res.json({
       revealed: true,
+      event,
       friend: {
-        id: assignment.receiver.id,
-        firstName: assignment.receiver.firstName,
-        lastName: assignment.receiver.lastName,
-        phone: assignment.receiver.phone,
-        email: assignment.receiver.email
+        id: receiver.id,
+        firstName: receiver.firstName,
+        lastName: receiver.lastName,
+        phone: receiver.phone,
+        email: receiver.email,
       },
-      gifts
+      gifts: receiver.GiftOptions,
     });
   } catch (err) {
     console.error("getMySecretFriend:", err);
@@ -105,27 +98,17 @@ export const getMySecretFriend = async (req, res) => {
   }
 };
 
-// Obtener mis opciones de regalo
+/**
+ * Opciones de regalo del usuario en el evento actual.
+ * GET /api/user/gifts
+ */
 export const getMyGifts = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    // Buscar participante vinculado al usuario
-    const participant = await Participant.findOne({
-      where: { userId }
-    });
-
-    if (!participant) {
-      return res.status(404).json({ message: "No eres participante de ningún evento" });
-    }
-
-    // Buscar regalos
     const gifts = await GiftOption.findAll({
-      where: { participantId: participant.id }
+      where: { participantId: req.participant.id },
+      order: [["createdAt", "ASC"]],
     });
-
     return res.json(gifts);
-
   } catch (error) {
     console.error("Error getMyGifts", error);
     return res.status(500).json({ message: "Error obteniendo opciones de regalo" });
@@ -133,58 +116,110 @@ export const getMyGifts = async (req, res) => {
 };
 
 /**
- * Delete one gift option of the logged user
+ * Agrega una opción de regalo respetando el máximo por participante.
+ * POST /api/user/gift
+ */
+export const addGiftOption = async (req, res) => {
+  try {
+    const gift = await sequelize.transaction(async (transaction) => {
+      // Bloquea la fila del participante: dos envíos simultáneos no pueden
+      // leer el mismo conteo y superar el límite.
+      await Participant.findByPk(req.participant.id, { transaction, lock: transaction.LOCK.UPDATE });
+
+      const count = await GiftOption.count({ where: { participantId: req.participant.id }, transaction });
+      if (count >= MAX_GIFTS_PER_PARTICIPANT) return null;
+
+      return GiftOption.create({ ...req.body, participantId: req.participant.id }, { transaction });
+    });
+
+    if (!gift) {
+      return res.status(409).json({
+        code: ERROR_CODES.GIFT_LIMIT,
+        message: `Solo puedes registrar hasta ${MAX_GIFTS_PER_PARTICIPANT} opciones de regalo`,
+      });
+    }
+
+    res.status(201).json({ message: "Gift added", gift });
+  } catch (err) {
+    console.error("addGiftOption:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Actualiza una opción de regalo propia. Solo se modifican los campos enviados.
+ * PUT /api/user/gift/:id
+ */
+export const updateGiftOption = async (req, res) => {
+  try {
+    const gift = await findOwnGift(req.params.id, req.user.id);
+    if (!gift) return res.status(404).json(GIFT_NOT_FOUND);
+
+    await gift.update(req.body);
+
+    return res.json({ message: "Regalo actualizado correctamente", gift });
+  } catch (error) {
+    console.error("updateGiftOption error:", error);
+    return res.status(500).json({ message: "Error actualizando regalo" });
+  }
+};
+
+/**
+ * Elimina una opción de regalo propia.
  * DELETE /api/user/gift/:id
  */
 export const deleteGiftOption = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const giftId = req.params.id;
+    const gift = await findOwnGift(req.params.id, req.user.id);
+    if (!gift) return res.status(404).json(GIFT_NOT_FOUND);
 
-    // 1. Buscar el participante asociado al usuario
-    const participant = await Participant.findOne({
-      where: { userId }
-    });
-
-    if (!participant) {
-      return res.status(404).json({ message: "No eres participante de ningún evento" });
-    }
-
-    // 2. Buscar el regalo, confirmando que pertenezca a este usuario
-    const gift = await GiftOption.findOne({
-      where: { id: giftId, participantId: participant.id }
-    });
-
-    if (!gift) {
-      return res.status(404).json({ message: "Regalo no encontrado o no te pertenece" });
-    }
-
-    // 3. Eliminar
     await gift.destroy();
 
     return res.json({ message: "Regalo eliminado correctamente" });
-
   } catch (error) {
     console.error("deleteGiftOption error:", error);
     return res.status(500).json({ message: "Error eliminando regalo" });
   }
 };
 
+/**
+ * Donaciones registradas por los participantes del evento actual.
+ * GET /api/user/donations
+ */
+export const getEventDonations = async (req, res) => {
+  try {
+    const participants = await Participant.findAll({
+      where: { eventId: req.participant.eventId },
+      include: [{ model: GiftOption, required: false }],
+      order: [["firstName", "ASC"], ["lastName", "ASC"]],
+    });
+
+    const result = participants.flatMap((p) =>
+      (p.GiftOptions || [])
+        .filter((g) => g.donation && g.donation.trim() !== "")
+        .map((g) => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          donation: g.donation,
+        }))
+    );
+
+    return res.json(result);
+  } catch (error) {
+    console.error("getEventDonations error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const changePassword = async (req, res) => {
   try {
-    console.log(req.user)
-    const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword)
-      return res.status(400).json({ message: "Campos incompletos" });
-
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Contraseña actual incorrecta" });
+    if (!isMatch) return res.status(400).json({ message: "Contraseña actual incorrecta" });
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
@@ -193,123 +228,5 @@ export const changePassword = async (req, res) => {
   } catch (err) {
     console.error("changePassword:", err);
     return res.status(500).json({ message: "Error en el servidor" });
-  }
-};
-
-//Obtener donaciones del evento al que pertenece el usuario
-export const getEventDonations = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    // 1️⃣ Buscar si el usuario es participante de algún evento
-    const participant = await Participant.findOne({
-      where: { userId }
-    });
-
-    if (!participant) {
-      return res.status(404).json({
-        message: "No perteneces a ningún evento"
-      });
-    }
-
-    const eventId = participant.eventId;
-
-    // 2️⃣ Buscar participantes del mismo evento con sus regalos
-    const participants = await Participant.findAll({
-      where: { eventId },
-      include: [
-        {
-          model: GiftOption,
-          required: false
-        }
-      ]
-    });
-
-    // 3️⃣ Construir respuesta
-    const result = participants.flatMap(p =>
-      (p.GiftOptions || [])
-        .filter(g => g.donation && g.donation.trim() !== "")
-        .map(g => ({
-          firstName: p.firstName,
-          lastName: p.lastName,
-          donation: g.donation
-        }))
-    );
-
-    return res.json(result);
-
-  } catch (error) {
-    console.error("getEventDonations error:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Obtener solo eventId y participantId del usuario
-export const getMyEventInfo = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const participant = await Participant.findOne({
-      where: { userId }
-    });
-
-    if (!participant) {
-      return res.status(404).json({
-        message: "No eres participante de ningún evento"
-      });
-    }
-
-    return res.json({
-      participantId: participant.id,
-      eventId: participant.eventId
-    });
-
-  } catch (error) {
-    console.error("getMyEventInfo error:", error);
-    return res.status(500).json({ message: "Error obteniendo info del evento" });
-  }
-};
-
-
-export const updateGiftOption = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const giftId = req.params.id;
-    const { title, note, donation, link } = req.body;
-
-    // 1. Buscar participante asociado al usuario
-    const participant = await Participant.findOne({
-      where: { userId }
-    });
-
-    if (!participant) {
-      return res.status(404).json({ message: "No eres participante de ningún evento" });
-    }
-
-    // 2. Buscar el regalo asegurando que le pertenece
-    const gift = await GiftOption.findOne({
-      where: { id: giftId, participantId: participant.id }
-    });
-
-    if (!gift) {
-      return res.status(404).json({ message: "Regalo no encontrado o no te pertenece" });
-    }
-
-    // 3. Actualizar valores
-    gift.title = title ?? gift.title;
-    gift.note = note ?? gift.note;
-    gift.donation = donation ?? gift.donation;
-    gift.link = link ?? gift.link;
-
-    await gift.save();
-
-    return res.json({
-      message: "Regalo actualizado correctamente",
-      gift
-    });
-
-  } catch (error) {
-    console.error("updateGiftOption error:", error);
-    return res.status(500).json({ message: "Error actualizando regalo" });
   }
 };

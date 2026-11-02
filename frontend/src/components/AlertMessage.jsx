@@ -1,8 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function AlertMessage({ type = "success", message, onClose }) {
+  // Se guarda el último onClose en un ref: si fuera dependencia del efecto,
+  // cada render del padre (onClose inline) reiniciaría el temporizador.
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
-    const timer = setTimeout(() => onClose(), 2000);
+    onCloseRef.current = onClose;
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => onCloseRef.current(), 2000);
     return () => clearTimeout(timer);
   }, []);
 

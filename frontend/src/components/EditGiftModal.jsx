@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
+/**
+ * El padre debe montarlo con `key={gift.id}`: así el formulario se inicializa
+ * con cada regalo sin sincronizar estado dentro de un efecto.
+ */
 export default function EditGiftModal({ open, gift, onClose, onSave }) {
   const [form, setForm] = useState(gift || {});
-
-  // 🔥 Actualiza el formulario cuando cambie el regalo seleccionado
-  useEffect(() => {
-    setForm(gift || {});
-  }, [gift]);
 
   if (!open) return null;
 
@@ -52,8 +51,8 @@ export default function EditGiftModal({ open, gift, onClose, onSave }) {
           />
 
           <input
-            type="text"
-            placeholder="Link del regalo (opcional)"
+            type="url"
+            placeholder="Link del regalo (opcional, https://...)"
             value={form.link || ""}
             onChange={e => setForm({ ...form, link: e.target.value })}
             className="input input-bordered w-full bg-white/80 border-red-300 focus:border-green-600 rounded-xl shadow-sm"

@@ -1,0 +1,33 @@
+# Blueprint de Render para el backend.
+# Render no ofrece MySQL gestionado: la base debe ser externa (Aiven, TiDB,
+# Railway, etc.). Las variables con `sync: false` se completan en el
+# Dashboard al crear el Blueprint y nunca se guardan en el repositorio.
+services:
+  - type: web
+    name: amigo-secreto-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    # Aplica migraciones pendientes y el bootstrap del admin antes de arrancar.
+    # En planes de pago puede moverse a `preDeployCommand: npm run db:migrate`.
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DB_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_CA
+        sync: false
+      - key: ADMIN_PHONE
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

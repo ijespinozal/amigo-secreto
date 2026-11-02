@@ -5,21 +5,36 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start:prod": "npm run db:migrate && npm run db:admin -- --if-configured && npm start",
+    "dev": "nodemon src/server.js",
+    "db:create": "node src/database/cli.js create",
+    "db:migrate": "node src/database/cli.js migrate",
+    "db:migrate:undo": "node src/database/cli.js migrate:undo",
+    "db:status": "node src/database/cli.js status",
+    "db:seed": "node src/database/cli.js seed",
+    "db:seed:undo": "node src/database/cli.js seed:undo",
+    "db:admin": "node src/database/cli.js admin",
+    "db:setup": "npm run db:create && npm run db:migrate && npm run db:seed"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.3",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "umzug": "^3.8.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

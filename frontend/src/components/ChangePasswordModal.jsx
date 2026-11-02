@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import api from "../api";
+import api, { getErrorMessage } from "../api";
+import { PASSWORD_MIN_LENGTH } from "../config/rules";
 import Spinner from "./Spinner";
 import AlertMessage from "./AlertMessage";
 
+// Los hooks no pueden ir después de un `return` condicional (reglas de React):
+// el envoltorio decide si se muestra y el contenido usa los hooks.
 export default function ChangePasswordModal({ open, onClose }) {
   if (!open) return null;
+  return <ChangePasswordForm onClose={onClose} />;
+}
 
+function ChangePasswordForm({ onClose }) {
   const [current, setCurrent] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -23,7 +29,7 @@ export default function ChangePasswordModal({ open, onClose }) {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [onClose]);
 
   // Cerrar clic afuera
   const handleBackdropClick = (e) => {
@@ -34,36 +40,30 @@ export default function ChangePasswordModal({ open, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    //setAlert({ show: false, type: "", message: "" });
-    setLoading(true);
 
+    if (newPass.length < PASSWORD_MIN_LENGTH) {
+      setMsg({ type: "error", text: `La nueva contraseña debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres` });
+      return;
+    }
     if (newPass !== confirm) {
       setMsg({ type: "error", text: "Las contraseñas no coinciden" });
       return;
     }
 
+    setMsg(null);
+    setLoading(true);
     try {
       const res = await api.post("/user/change-password", {
         currentPassword: current,
         newPassword: newPass,
       });
 
-      //setMsg({ type: "success", text: res.data.message });
-      setAlert({
-        show: true,
-        type: "success",
-        message: res.data.message
-      });
-
+      setAlert({ type: "success", message: res.data.message });
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err) {
-      setMsg({
-        type: "error",
-        text: err.response?.data?.message || "Error inesperado",
-      });
-      setLoading(false);
+      setMsg({ type: "error", text: getErrorMessage(err, "Error inesperado") });
     } finally {
       setLoading(false);
     }
@@ -117,14 +117,18 @@ export default function ChangePasswordModal({ open, onClose }) {
             placeholder="Contraseña actual"
             value={current}
             onChange={(e) => setCurrent(e.target.value)}
+            required
             className="w-full p-3 bg-gray-100 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-600"
           />
 
           <input
             type="password"
-            placeholder="Nueva contraseña"
+            placeholder={`Nueva contraseña (mín. ${PASSWORD_MIN_LENGTH} caracteres)`}
             value={newPass}
             onChange={(e) => setNewPass(e.target.value)}
+            required
+            minLength={PASSWORD_MIN_LENGTH}
+            maxLength={72}
             className="w-full p-3 bg-gray-100 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-600"
           />
 
@@ -133,6 +137,7 @@ export default function ChangePasswordModal({ open, onClose }) {
             placeholder="Confirmar nueva contraseña"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            required
             className="w-full p-3 bg-gray-100 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-600"
           />
 

@@ -1,5 +1,5 @@
 // src/models/index.js
-import DataTypes from "sequelize";
+import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
 
 import defineUser from "./User.js";
@@ -20,7 +20,7 @@ Event.hasMany(Participant, { foreignKey: "eventId", onDelete: "CASCADE" });
 Participant.belongsTo(Event, { foreignKey: "eventId" });
 
 // User <-> Participant (optional)
-User.hasMany(Participant, { foreignKey: "userId" });
+User.hasMany(Participant, { foreignKey: "userId", onDelete: "SET NULL" });
 Participant.belongsTo(User, { foreignKey: "userId" });
 
 // Participant <-> GiftOption
@@ -38,21 +38,12 @@ Assignment.belongsTo(Participant, { foreignKey: "giverParticipantId", as: "giver
 Participant.hasMany(Assignment, { foreignKey: "receiverParticipantId", as: "receivedAssignments" });
 Assignment.belongsTo(Participant, { foreignKey: "receiverParticipantId", as: "receiver" });
 
+// El esquema lo gestionan exclusivamente las migraciones (src/database/migrations).
+// No se usa sequelize.sync(): con `alter` duplicaba índices en cada arranque y
+// sin él no aplicaba cambios a tablas existentes.
 const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("Database connected!");
-    //await sequelize.sync({ alter: true }); // en dev: sincroniza cambios
-    if (process.env.NODE_ENV === "production") {
-      await sequelize.sync();
-    } else {
-      await sequelize.sync({ alter: true });
-    }
-    console.log("Models synchronized!");
-  } catch (err) {
-    console.error("DB connection error:", err);
-    throw err;
-  }
+  await sequelize.authenticate();
+  console.log("Database connected!");
 };
 
 export {

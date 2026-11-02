@@ -2,8 +2,27 @@ import { Link } from "react-router-dom";
 import Card from "../../components/Card";
 import useAuth from "../../hooks/useAuth";
 import { useEffect, useState } from "react";
-import api from "../../api";
 import TimelineModal from "../../components/TimelineModal";
+import useApiData from "../../hooks/useApiData";
+import useEvents from "../../hooks/useEvents";
+import { daysUntil, formatCalendarDate } from "../../utils/date";
+
+/** Texto del banner según cuántos días faltan para el evento. */
+const buildCountdownMessage = (event) => {
+  const days = daysUntil(event?.date_event);
+  if (days === null) return <>🎄 Ve agregando tus opciones de regalo. 🎁✨</>;
+
+  const date = formatCalendarDate(event.date_event, { day: "numeric", month: "long" });
+  if (days < 0) return <>🎄 Nuestra reunión navideña fue el <strong>{date}</strong>. ¡Gracias por participar! 🎁✨</>;
+  if (days === 0) return <>🎉 ¡Hoy es nuestra reunión navideña! — 📅 <strong>{date}</strong> 🎁✨</>;
+
+  return (
+    <>
+      🎄 Falta{days === 1 ? "" : "n"} <strong>{days}</strong> día{days === 1 ? "" : "s"} para nuestra
+      reunión navideña — 📅 <strong>{date}</strong> 🎁✨. Ve agregando tus opciones de regalo.🏃🏽
+    </>
+  );
+};
 
 // Imágenes de premios (Rutas desde public/imagenes)
 const prizeImages = [
@@ -75,10 +94,12 @@ const PrizeCarousel = () => {
 
 export default function UserDashboard() {
   const { user } = useAuth();
-  const [daysLeft, setDaysLeft] = useState(0);
-  const [daysCalendar, setDaysCalendar] = useState(0);
-  const [donations, setDonations] = useState([]);
-  const [eventId, setEventId] = useState(99);
+  const { ready, selectedEvent, selectedEventId } = useEvents();
+  const { data: donationsData } = useApiData("/user/donations", {
+    enabled: ready && selectedEventId !== null,
+    scope: selectedEventId,
+  });
+  const donations = donationsData ?? [];
   const [showTimeline, setShowTimeline] = useState(false);
 
   // Lógica para mostrar el modal SOLO la primera vez
@@ -101,63 +122,8 @@ export default function UserDashboard() {
     setShowTimeline(false);
   };
 
-  useEffect(() => {
-    const fetchDonations = async () => {
-      try {
-        const res = await api.get(`/user/donations`);
-        setDonations(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchDonations();
-  }, []);
-
-  useEffect(() => {
-    const fetchEventInfo = async () => {
-      const res = await api.get("/user/event-info");
-      setEventId(res.data.eventId);
-    };
-
-    fetchEventInfo();
-  }, []);
-
-  useEffect(() => {
-    if (!eventId) return;
-
-    let eventDate,
-        calendayDay
-
-    if (eventId === 1) {
-      eventDate = new Date("2025-12-25");
-      calendayDay = 25
-    } else if (eventId === 3) {
-      eventDate = new Date("2025-12-20");
-      calendayDay = 20
-    } else {
-      eventDate = new Date("2025-12-25");
-      calendayDay = 25
-    }
-
-    const today = new Date();
-    const diff = eventDate - today;
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-    setDaysLeft(days);
-    setDaysCalendar(calendayDay)
-  }, [eventId]);
-
-
-  // useEffect(() => {
-  //   const eventDate = new Date("2025-12-07");
-  //   const today = new Date();
-
-  //   const diff = eventDate - today;
-  //   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-  //   setDaysLeft(days);
-  // }, []);
+  // Sin evento (aún no fue agregado) el banner muestra el mensaje genérico.
+  const countdownMessage = buildCountdownMessage(selectedEvent);
 
   return (
     <>
@@ -170,18 +136,17 @@ export default function UserDashboard() {
         <h1 className="text-3xl font-bold text-white flex items-center gap-2">
           🎅 Bienvenid@ {user.firstName}
         </h1>
+        {selectedEvent && (
+          <p className="text-white/90 -mt-6">🎄 {selectedEvent.title}</p>
+        )}
 
         {/* ⭐ Banner Navideño Horizontal ⭐ */}
         <div className="christmas-banner-container">
           <div className="christmas-banner-track">
-            <div className="christmas-banner">
-              🎄 Falta(n) <strong>{daysLeft}</strong> día(s) para nuestra reunión navideña — 📅 <strong>{daysCalendar}</strong> de diciembre 🎁✨. Ve agregando tus opciones de regalo.🏃🏽
-            </div>
+            <div className="christmas-banner">{countdownMessage}</div>
 
             {/* DUPLICADO — requerido para scroll infinito */}
-            <div className="christmas-banner">
-              🎄 Falta(n) <strong>{daysLeft}</strong> día(s) para nuestra reunión navideña — 📅 <strong>{daysCalendar}</strong> de diciembre 🎁✨. Ve agregando tus opciones de regalo.🏃🏽
-            </div>
+            <div className="christmas-banner">{countdownMessage}</div>
           </div>
         </div>
 

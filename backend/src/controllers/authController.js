@@ -1,33 +1,50 @@
 // src/controllers/authController.js
+// La entrada llega validada y normalizada por los esquemas de src/validation.
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User, Participant } from "../models/index.js";
+import { UniqueConstraintError } from "sequelize";
+import env from "../config/env.js";
+import { ERROR_CODES } from "../config/constants.js";
+import { User, Participant, sequelize } from "../models/index.js";
 
-const jwtSecret = process.env.JWT_SECRET || "secret";
+const toSafeUser = (user) => ({
+  id: user.id,
+  phone: user.phone,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  role: user.role,
+});
 
 export const register = async (req, res) => {
   try {
     const { phone, password, firstName, lastName } = req.body;
-    if (!phone || !password || !firstName || !lastName) {
-      return res.status(400).json({ message: "Fields missing" });
-    }
 
     const existing = await User.findOne({ where: { phone } });
-    if (existing) return res.status(400).json({ message: "El número ya ha sido registrado." });
-
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ phone, password: hashed, firstName, lastName, role: "user" });
-
-    // Link to participant if there is a participant with same phone and no userId
-    const participant = await Participant.findOne({ where: { phone, userId: null } });
-    if (participant) {
-      participant.userId = user.id;
-      await participant.save();
+    if (existing) {
+      return res.status(409).json({ code: ERROR_CODES.PHONE_TAKEN, message: "El número ya ha sido registrado." });
     }
 
-    const userSafe = { id: user.id, phone: user.phone, firstName: user.firstName, lastName: user.lastName, role: user.role };
-    res.json({ user: userSafe });
+    const hashed = await bcrypt.hash(password, 10);
+
+    const user = await sequelize.transaction(async (transaction) => {
+      const created = await User.create(
+        { phone, password: hashed, firstName, lastName, role: "user" },
+        { transaction }
+      );
+
+      // El admin pudo haber agregado este teléfono a varios eventos antes de
+      // que la persona se registrara: se vincula con todos ellos.
+      await Participant.update({ userId: created.id }, { where: { phone, userId: null }, transaction });
+
+      return created;
+    });
+
+    res.status(201).json({ user: toSafeUser(user) });
   } catch (err) {
+    // Dos registros simultáneos con el mismo teléfono: lo resuelve el índice único.
+    if (err instanceof UniqueConstraintError) {
+      return res.status(409).json({ code: ERROR_CODES.PHONE_TAKEN, message: "El número ya ha sido registrado." });
+    }
     console.error("Register error:", err);
     res.status(500).json({ message: "Server error" });
   }
@@ -36,7 +53,6 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { phone, password } = req.body;
-    if (!phone || !password) return res.status(400).json({ message: "Missing fields" });
 
     const user = await User.findOne({ where: { phone } });
     if (!user) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
@@ -44,31 +60,11 @@ export const login = async (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
 
-    const token = jwt.sign({ id: user.id }, jwtSecret, { expiresIn: "7d" });
-    const userSafe = { id: user.id, phone: user.phone, firstName: user.firstName, lastName: user.lastName, role: user.role };
+    const token = jwt.sign({ id: user.id }, env.jwt.secret, { expiresIn: env.jwt.expiresIn });
 
-    res.json({ token, user: userSafe });
+    res.json({ token, user: toSafeUser(user) });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/** Optional: create admin endpoint (temporary) */
-export const createAdmin = async (req, res) => {
-  try {
-    const { phone, password, firstName, lastName } = req.body;
-    if (!phone || !password || !firstName) return res.status(400).json({ message: "Missing fields" });
-
-    const existing = await User.findOne({ where: { phone } });
-    if (existing) return res.status(400).json({ message: "Phone exists" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    const admin = await User.create({ phone, password: hashed, firstName, lastName, role: "admin" });
-
-    res.json({ message: "Admin created", adminId: admin.id });
-  } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };

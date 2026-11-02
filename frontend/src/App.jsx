@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import PrivateRoute from "./routes/PrivateRoute";
+import EventSelector from "./components/EventSelector";
 
 /* Auth */
 import Login from "./pages/Login";
@@ -23,6 +24,9 @@ export default function App() {
 
       {/* MAIN crece automáticamente hasta empujar el footer al final */}
       <main className="flex-grow container mx-auto p-4">
+        {/* Solo visible para usuarios que participan en más de un evento */}
+        <EventSelector />
+
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />

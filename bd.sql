@@ -1,62 +1,92 @@
-CREATE DATABASE amigo_secreto_db;
+-- =====================================================================
+-- Amigo Secreto - esquema de referencia
+-- ---------------------------------------------------------------------
+-- La fuente de verdad del esquema son las migraciones en
+-- backend/src/database/migrations. Forma recomendada de crear la BD:
+--
+--   cd backend
+--   npm run db:setup     # crea la BD, aplica migraciones y carga datos demo
+--
+-- Este script equivale al resultado de las migraciones y sirve para
+-- consultar el modelo o instalarlo a mano (phpMyAdmin). Es compatible con
+-- ellas: si después se ejecuta `npm run db:migrate`, las migraciones
+-- detectan las tablas existentes y no las duplican.
+-- No incluye usuarios: el admin se crea con `npm run db:admin` o con el seed.
+-- Compatible con MySQL 8 y MariaDB 10.4+.
+-- =====================================================================
 
-CREATE TABLE users (
+CREATE DATABASE IF NOT EXISTS amigo_secreto_db
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE amigo_secreto_db;
+
+CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  phone VARCHAR(20) UNIQUE NOT NULL,
+  phone VARCHAR(20) NOT NULL,
   password VARCHAR(255) NOT NULL,
   firstName VARCHAR(100),
   lastName VARCHAR(100),
-  role ENUM('admin','user') DEFAULT 'user',
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+  role ENUM('admin','user') NOT NULL DEFAULT 'user',
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY users_phone_unique (phone)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT,
-  date_event DATE,
-  createdBy INT, -- FK a users.id (admin)
-  drawDone BOOLEAN DEFAULT FALSE,
+  date_event DATE NULL,
+  createdBy INT NULL,
+  drawDone TINYINT(1) NOT NULL DEFAULT 0,
   drawDate DATETIME NULL,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (createdBy) REFERENCES users(id)
-);
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_events_createdBy FOREIGN KEY (createdBy)
+    REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE participants (
+CREATE TABLE IF NOT EXISTS participants (
   id INT AUTO_INCREMENT PRIMARY KEY,
   eventId INT NOT NULL,
-  userId INT NULL, -- si se registra como usuario del sistema
+  userId INT NULL,               -- se vincula cuando la persona se registra
   phone VARCHAR(20) NOT NULL,
   firstName VARCHAR(100),
   lastName VARCHAR(100),
   email VARCHAR(255),
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (eventId) REFERENCES events(id),
-  FOREIGN KEY (userId) REFERENCES users(id)
-);
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY participants_event_phone_unique (eventId, phone),
+  CONSTRAINT fk_participants_eventId FOREIGN KEY (eventId)
+    REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_participants_userId FOREIGN KEY (userId)
+    REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE giftOptions (
+CREATE TABLE IF NOT EXISTS giftOptions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   participantId INT NOT NULL,
-  title VARCHAR(255),
+  title VARCHAR(255) NOT NULL,
   note TEXT,
-  donation VARCHAR(255), -- ejemplo: "llevaré panetón"
+  donation VARCHAR(255),         -- ejemplo: "llevaré panetón"
   link VARCHAR(500),
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (participantId) REFERENCES participants(id)
-);
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_giftOptions_participantId FOREIGN KEY (participantId)
+    REFERENCES participants(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE assignments (
+CREATE TABLE IF NOT EXISTS assignments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   eventId INT NOT NULL,
   giverParticipantId INT NOT NULL,
   receiverParticipantId INT NOT NULL,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (eventId) REFERENCES events(id),
-  FOREIGN KEY (giverParticipantId) REFERENCES participants(id),
-  FOREIGN KEY (receiverParticipantId) REFERENCES participants(id)
-);
-
-INSERT INTO users (firstName, lastName, phone, password, role)
-VALUES ("admin", "admin", "999999999", "$2b$10$EMxCsdfTysTs4EsmKIx20OKAGdr0A5oXGCEVD0qJxH3LPBt.ujmsO", "admin");
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY assignments_event_giver_unique (eventId, giverParticipantId),
+  CONSTRAINT fk_assignments_eventId FOREIGN KEY (eventId)
+    REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_assignments_giverParticipantId FOREIGN KEY (giverParticipantId)
+    REFERENCES participants(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_assignments_receiverParticipantId FOREIGN KEY (receiverParticipantId)
+    REFERENCES participants(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
