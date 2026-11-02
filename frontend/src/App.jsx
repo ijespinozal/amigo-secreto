@@ -11,11 +11,13 @@ import Register from "./pages/Register";
 /* Admin */
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import ParticipantsPage from "./pages/Admin/ParticipantsPage";
+import SchedulePage from "./pages/Admin/SchedulePage";
 
 /* User */
 import UserDashboard from "./pages/User/UserDashboard";
 import MyGiftForm from "./pages/User/MyGiftForm";
 import MySecret from "./pages/User/MySecret";
+import GroupGifts from "./pages/User/GroupGifts";
 
 export default function App() {
   return (
@@ -42,6 +44,11 @@ export default function App() {
               <ParticipantsPage />
             </PrivateRoute>
           } />
+          <Route path="/admin/event/:id/schedule" element={
+            <PrivateRoute adminOnly>
+              <SchedulePage />
+            </PrivateRoute>
+          } />
 
           {/* User */}
           <Route path="/user/home" element={
@@ -57,6 +64,11 @@ export default function App() {
           <Route path="/user/secret" element={
             <PrivateRoute>
               <MySecret />
+            </PrivateRoute>
+          } />
+          <Route path="/user/group-gifts" element={
+            <PrivateRoute>
+              <GroupGifts />
             </PrivateRoute>
           } />
 

@@ -80,6 +80,14 @@ export default function Header() {
                         Mi espacio
                       </Link>
 
+                      <Link
+                        to="/user/group-gifts"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setOpenMenu(false)}
+                      >
+                        Regalos del grupo
+                      </Link>
+
                       <button
                         className="block w-full text-left px-4 py-2 !bg-white !text-gray-700 hover:bg-gray-100"
                         onClick={() => {

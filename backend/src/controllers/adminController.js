@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { UniqueConstraintError } from "sequelize";
 import { ERROR_CODES, MIN_PARTICIPANTS_FOR_DRAW } from "../config/constants.js";
-import { Event, Participant, User, Assignment, GiftOption, sequelize } from "../models/index.js";
+import { Event, Participant, User, Assignment, GiftOption, ScheduleActivity, sequelize } from "../models/index.js";
 import { generateAssignments } from "../utils/drawUtils.js";
 import { generateTemporaryPassword } from "../utils/passwords.js";
 
@@ -23,8 +23,10 @@ const serializeEvent = (event) => ({
   drawDone: event.drawDone,
   drawDate: event.drawDate,
   createdAt: event.createdAt,
-  // Solo se informa si se cargaron los participantes; undefined se omite del JSON.
+  schedulePublished: event.schedulePublished,
+  // Solo se informan si se cargaron las asociaciones; undefined se omite del JSON.
   participantsCount: event.Participants?.length,
+  activitiesCount: event.activities?.length,
 });
 
 // ===============================
@@ -34,7 +36,7 @@ export const createEvent = async (req, res) => {
   try {
     const { title, description, date_event } = req.body;
     const ev = await Event.create({ title, description, date_event, createdBy: req.user.id });
-    res.status(201).json({ message: "Event created", event: { ...serializeEvent(ev), participantsCount: 0 } });
+    res.status(201).json({ message: "Event created", event: { ...serializeEvent(ev), participantsCount: 0, activitiesCount: 0 } });
   } catch (err) {
     console.error("createEvent:", err);
     res.status(500).json({ message: "Server error" });
@@ -44,7 +46,11 @@ export const createEvent = async (req, res) => {
 export const getEvents = async (req, res) => {
   try {
     const events = await Event.findAll({
-      include: [{ model: Participant, attributes: ["id"] }],
+      // separate: una consulta por relación, en vez de un JOIN participantes × actividades.
+      include: [
+        { model: Participant, attributes: ["id", "eventId"], separate: true },
+        { model: ScheduleActivity, as: "activities", attributes: ["id", "eventId"], separate: true },
+      ],
       order: [["createdAt", "DESC"]],
     });
     res.json({ events: events.map(serializeEvent) });

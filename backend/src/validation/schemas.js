@@ -114,6 +114,36 @@ export const drawSchema = z.object({ eventId: id("El evento") });
 
 export const resetPasswordSchema = z.object({ userId: id("El usuario") });
 
+// ---- Cronograma ----
+export const MAX_PRIZES_PER_ACTIVITY = 20;
+
+export const activitySchema = z.object({
+  // "HH:MM" (input type="time"); se guarda como TIME.
+  startTime: z
+    .string({ required_error: "La hora es obligatoria" })
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "La hora debe tener el formato HH:MM"),
+  title: requiredText("El título de la actividad", 150),
+  description: optionalText("La descripción", 1000),
+  participantsLabel: optionalText("El texto de participantes", 50),
+  icon: optionalText("El ícono", 16),
+  referenceUrl: link,
+  prizes: z
+    .array(requiredText("Cada premio", 255), { invalid_type_error: "Los premios deben ser una lista" })
+    .max(MAX_PRIZES_PER_ACTIVITY, `Máximo ${MAX_PRIZES_PER_ACTIVITY} premios por actividad`)
+    .default([]),
+});
+
+export const scheduleVisibilitySchema = z.object({
+  published: z.boolean({ required_error: "Indica si el cronograma se publica", invalid_type_error: "published debe ser true o false" }),
+});
+
+export const scheduleOrderSchema = z.object({
+  activityIds: z
+    .array(id("Cada actividad"), { required_error: "activityIds es obligatorio" })
+    .min(1, "La lista de actividades está vacía")
+    .refine((ids) => new Set(ids).size === ids.length, "La lista de actividades tiene ids repetidos"),
+});
+
 // ---- Usuario ----
 const giftFields = {
   title: requiredText("El título del regalo", 255),

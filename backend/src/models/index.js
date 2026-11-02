@@ -7,12 +7,16 @@ import defineEvent from "./Event.js";
 import defineParticipant from "./Participant.js";
 import defineGiftOption from "./GiftOption.js";
 import defineAssignment from "./Assignment.js";
+import defineScheduleActivity from "./ScheduleActivity.js";
+import defineScheduleActivityPrize from "./ScheduleActivityPrize.js";
 
 const User = defineUser(sequelize, DataTypes);
 const Event = defineEvent(sequelize, DataTypes);
 const Participant = defineParticipant(sequelize, DataTypes);
 const GiftOption = defineGiftOption(sequelize, DataTypes);
 const Assignment = defineAssignment(sequelize, DataTypes);
+const ScheduleActivity = defineScheduleActivity(sequelize, DataTypes);
+const ScheduleActivityPrize = defineScheduleActivityPrize(sequelize, DataTypes);
 
 /** Associations */
 // Event <-> Participant
@@ -38,6 +42,13 @@ Assignment.belongsTo(Participant, { foreignKey: "giverParticipantId", as: "giver
 Participant.hasMany(Assignment, { foreignKey: "receiverParticipantId", as: "receivedAssignments" });
 Assignment.belongsTo(Participant, { foreignKey: "receiverParticipantId", as: "receiver" });
 
+// Event <-> ScheduleActivity <-> ScheduleActivityPrize (cronograma)
+Event.hasMany(ScheduleActivity, { foreignKey: "eventId", as: "activities", onDelete: "CASCADE" });
+ScheduleActivity.belongsTo(Event, { foreignKey: "eventId" });
+
+ScheduleActivity.hasMany(ScheduleActivityPrize, { foreignKey: "activityId", as: "prizes", onDelete: "CASCADE" });
+ScheduleActivityPrize.belongsTo(ScheduleActivity, { foreignKey: "activityId" });
+
 // El esquema lo gestionan exclusivamente las migraciones (src/database/migrations).
 // No se usa sequelize.sync(): con `alter` duplicaba índices en cada arranque y
 // sin él no aplicaba cambios a tablas existentes.
@@ -54,5 +65,7 @@ export {
   Participant,
   GiftOption,
   Assignment,
+  ScheduleActivity,
+  ScheduleActivityPrize,
   connectDB,
 };

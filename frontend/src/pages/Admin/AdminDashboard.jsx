@@ -15,6 +15,21 @@ const PAGE_SIZE = 6;
 const formatDateTime = (value) =>
   new Date(value).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+/** Etiqueta de estado del cronograma (nada si el evento no tiene). */
+function ScheduleStatusBadge({ event }) {
+  const count = event.activitiesCount ?? 0;
+  if (count === 0) return null;
+  return event.schedulePublished ? (
+    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+      📅 Cronograma publicado ({count})
+    </span>
+  ) : (
+    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">
+      📝 Cronograma en borrador ({count})
+    </span>
+  );
+}
+
 /** Etiqueta de estado del sorteo de un evento. */
 function DrawStatusBadge({ event }) {
   return event.drawDone ? (
@@ -237,8 +252,9 @@ export default function AdminDashboard() {
                       📅 {ev.date_event ? formatCalendarDate(ev.date_event) : "Fecha por definir"}
                       {" · "}👥 {ev.participantsCount ?? 0} participante(s)
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 flex flex-wrap gap-2">
                       <DrawStatusBadge event={ev} />
+                      <ScheduleStatusBadge event={ev} />
                     </div>
                   </div>
 
@@ -250,6 +266,13 @@ export default function AdminDashboard() {
                       className="px-4 py-2 w-full bg-green-700 text-center text-white rounded-lg hover:bg-green-800 shadow whitespace-nowrap"
                     >
                       Participantes
+                    </Link>
+
+                    <Link
+                      to={`/admin/event/${ev.id}/schedule`}
+                      className="px-4 py-2 w-full bg-blue-700 text-center text-white rounded-lg hover:bg-blue-800 shadow whitespace-nowrap"
+                    >
+                      📅 Cronograma
                     </Link>
 
                     {ev.drawDone ? (

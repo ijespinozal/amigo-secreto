@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import Card from "../../components/Card";
 import useAuth from "../../hooks/useAuth";
 import { useEffect, useState } from "react";
-import TimelineModal from "../../components/TimelineModal";
+import ScheduleModal from "../../components/ScheduleModal";
+import { scheduleSeenKey } from "../../utils/schedule";
 import useApiData from "../../hooks/useApiData";
 import useEvents from "../../hooks/useEvents";
 import { daysUntil, formatCalendarDate } from "../../utils/date";
@@ -100,26 +101,29 @@ export default function UserDashboard() {
     scope: selectedEventId,
   });
   const donations = donationsData ?? [];
-  const [showTimeline, setShowTimeline] = useState(false);
 
-  // Lógica para mostrar el modal SOLO la primera vez
+  // Cronograma del evento: solo existe si el admin lo creó y lo publicó.
+  const { data: schedule } = useApiData("/user/schedule", {
+    enabled: ready && selectedEventId !== null,
+    scope: selectedEventId,
+  });
+  const hasSchedule = schedule?.available === true;
+  const [showSchedule, setShowSchedule] = useState(false);
+
+  // Se abre solo la primera vez por evento, y otra vez si el admin lo modifica
+  // (la versión es una huella de su contenido).
   useEffect(() => {
-    const hasSeenTimeline = localStorage.getItem('hasSeenChristmasTimeline');
-    
-    // Si NO existe la marca en localStorage, mostramos el modal
-    if (!hasSeenTimeline) {
-      // Pequeño timeout para que no sea tan brusco al cargar
-      const timer = setTimeout(() => {
-        setShowTimeline(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    if (!hasSchedule) return;
+    if (localStorage.getItem(scheduleSeenKey(selectedEventId)) === schedule.version) return;
 
-  const handleCloseTimeline = () => {
-    // Al cerrar, guardamos la marca en localStorage
-    localStorage.setItem('hasSeenChristmasTimeline', 'true');
-    setShowTimeline(false);
+    // Pequeño retraso para que no sea tan brusco al cargar
+    const timer = setTimeout(() => setShowSchedule(true), 1000);
+    return () => clearTimeout(timer);
+  }, [hasSchedule, schedule, selectedEventId]);
+
+  const handleCloseSchedule = () => {
+    localStorage.setItem(scheduleSeenKey(selectedEventId), schedule.version);
+    setShowSchedule(false);
   };
 
   // Sin evento (aún no fue agregado) el banner muestra el mensaje genérico.
@@ -128,9 +132,10 @@ export default function UserDashboard() {
   return (
     <>
       {/* Modal del Cronograma */}
-      <TimelineModal 
-        isOpen={showTimeline} 
-        onClose={handleCloseTimeline} 
+      <ScheduleModal
+        isOpen={showSchedule && hasSchedule}
+        onClose={handleCloseSchedule}
+        activities={schedule?.activities}
       />
       <div className="space-y-8 animate-fadeIn">
         <h1 className="text-3xl font-bold text-white flex items-center gap-2">
@@ -174,6 +179,35 @@ export default function UserDashboard() {
               </p>
             </Card>
           </Link>
+
+          <Link to="/user/group-gifts" className="group md:col-span-2">
+            <Card className="p-6 hover:shadow-xl hover:bg-base-200 transition">
+              <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
+                👀 Opciones de regalo del grupo
+              </h3>
+              <p className="opacity-80 mt-2">
+                Mira qué les gustaría recibir a los demás participantes.
+              </p>
+            </Card>
+          </Link>
+
+          {hasSchedule && (
+            // index.css estiliza todos los <button>: se neutraliza para que luzca como las otras tarjetas.
+            <button
+              type="button"
+              onClick={() => setShowSchedule(true)}
+              className="group text-left !bg-transparent !p-0 !text-inherit hover:![transform:none] md:col-span-2"
+            >
+              <Card>
+                <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
+                  📅 Ver cronograma navideño
+                </h3>
+                <p className="opacity-80 mt-2 text-gray-700">
+                  {schedule.activities.length} actividades con horarios y premios. ¡Prepárate para ganar!
+                </p>
+              </Card>
+            </button>
+          )}
 
           {/* 🎡 CARRUSEL DE PREMIOS (Ubicado debajo de las tarjetas) */}
           <div className="col-span-1 md:col-span-2"> 

@@ -3,6 +3,7 @@
 // (cabecera X-Event-Id o el evento más reciente del usuario).
 // La entrada llega validada y normalizada por los esquemas de src/validation.
 import bcrypt from "bcryptjs";
+import { Op } from "sequelize";
 import { ERROR_CODES, MAX_GIFTS_PER_PARTICIPANT } from "../config/constants.js";
 import { Participant, GiftOption, Assignment, User, Event, sequelize } from "../models/index.js";
 import { MOST_RECENT_EVENT_ORDER } from "../middlewares/participantContext.js";
@@ -179,6 +180,40 @@ export const deleteGiftOption = async (req, res) => {
   } catch (error) {
     console.error("deleteGiftOption error:", error);
     return res.status(500).json({ message: "Error eliminando regalo" });
+  }
+};
+
+/**
+ * Opciones de regalo de los demás participantes del evento actual.
+ * GET /api/user/group-gifts
+ * Privacidad: solo nombres y regalos; nunca teléfono ni email (esos datos
+ * solo los ve quien tiene asignada a esa persona en el sorteo).
+ */
+export const getGroupGifts = async (req, res) => {
+  try {
+    const participants = await Participant.findAll({
+      where: { eventId: req.participant.eventId, id: { [Op.ne]: req.participant.id } },
+      attributes: ["id", "firstName", "lastName", "userId"],
+      include: [{ model: GiftOption, attributes: ["id", "title", "note", "link", "createdAt"], required: false }],
+      order: [
+        ["firstName", "ASC"],
+        ["lastName", "ASC"],
+        [GiftOption, "createdAt", "ASC"],
+      ],
+    });
+
+    return res.json({
+      participants: participants.map((p) => ({
+        id: p.id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        registered: p.userId !== null,
+        gifts: p.GiftOptions.map(({ id, title, note, link }) => ({ id, title, note, link })),
+      })),
+    });
+  } catch (error) {
+    console.error("getGroupGifts error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 

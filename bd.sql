@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS events (
   createdBy INT NULL,
   drawDone TINYINT(1) NOT NULL DEFAULT 0,
   drawDate DATETIME NULL,
+  schedulePublished TINYINT(1) NOT NULL DEFAULT 0,  -- cronograma visible para participantes
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_events_createdBy FOREIGN KEY (createdBy)
@@ -89,4 +90,33 @@ CREATE TABLE IF NOT EXISTS assignments (
     REFERENCES participants(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_assignments_receiverParticipantId FOREIGN KEY (receiverParticipantId)
     REFERENCES participants(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cronograma de actividades de un evento (gestionado por el admin)
+CREATE TABLE IF NOT EXISTS scheduleActivities (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  eventId INT NOT NULL,
+  position INT NOT NULL,         -- orden manual (el cronograma puede cruzar la medianoche)
+  startTime TIME NOT NULL,
+  title VARCHAR(150) NOT NULL,
+  description TEXT,
+  participantsLabel VARCHAR(50), -- ejemplo: "10 personas", "TODOS"
+  icon VARCHAR(16),
+  referenceUrl VARCHAR(500),
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY schedule_activities_event_position (eventId, position),
+  CONSTRAINT fk_scheduleActivities_eventId FOREIGN KEY (eventId)
+    REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS scheduleActivityPrizes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  activityId INT NOT NULL,
+  position INT NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_scheduleActivityPrizes_activityId FOREIGN KEY (activityId)
+    REFERENCES scheduleActivities(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

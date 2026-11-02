@@ -14,15 +14,26 @@ import {
   resetPassword,
   deleteUser,
 } from "../controllers/adminController.js";
+import {
+  getEventSchedule,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  reorderActivities,
+  setScheduleVisibility,
+} from "../controllers/scheduleController.js";
 import { protect, onlyAdmin } from "../middlewares/authMiddleware.js";
 import { validate } from "../middlewares/validate.js";
 import {
+  activitySchema,
   drawSchema,
   eventIdParam,
   eventSchema,
   idParam,
   participantSchema,
   resetPasswordSchema,
+  scheduleOrderSchema,
+  scheduleVisibilitySchema,
 } from "../validation/schemas.js";
 
 const router = express.Router();
@@ -41,6 +52,15 @@ router.post("/participant", validate(participantSchema), addParticipant);
 router.delete("/participant/:id", validate(idParam, "params"), deleteParticipant);
 
 router.post("/draw", validate(drawSchema), runDraw);
+
+// Cronograma del evento
+const eventParams = validate(idParam, "params");
+router.get("/event/:id/schedule", eventParams, getEventSchedule);
+router.post("/event/:id/schedule/activities", eventParams, validate(activitySchema), createActivity);
+router.put("/event/:id/schedule/order", eventParams, validate(scheduleOrderSchema), reorderActivities);
+router.put("/event/:id/schedule/visibility", eventParams, validate(scheduleVisibilitySchema), setScheduleVisibility);
+router.put("/schedule/activities/:id", validate(idParam, "params"), validate(activitySchema), updateActivity);
+router.delete("/schedule/activities/:id", validate(idParam, "params"), deleteActivity);
 
 router.get("/users", getAllUsers);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);

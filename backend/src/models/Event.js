@@ -11,6 +11,8 @@ export default (sequelize, DataTypes) => {
       createdBy: { type: DataTypes.INTEGER, allowNull: true },
       drawDone: { type: DataTypes.BOOLEAN, defaultValue: false },
       drawDate: { type: DataTypes.DATE, allowNull: true },
+      // El cronograma solo lo ven los participantes cuando el admin lo publica.
+      schedulePublished: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     {
       tableName: "events",

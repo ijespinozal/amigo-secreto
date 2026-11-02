@@ -10,7 +10,9 @@ import {
   deleteGiftOption,
   changePassword,
   getEventDonations,
+  getGroupGifts,
 } from "../controllers/userController.js";
+import { getMySchedule } from "../controllers/scheduleController.js";
 
 import { protect } from "../middlewares/authMiddleware.js";
 import { loadParticipant } from "../middlewares/participantContext.js";
@@ -30,6 +32,8 @@ router.post("/change-password", changePasswordLimiter, validate(changePasswordSc
 router.get("/event-info", loadParticipant, getMyEventInfo);
 router.get("/secret-friend", loadParticipant, getMySecretFriend);
 router.get("/donations", loadParticipant, getEventDonations);
+router.get("/schedule", loadParticipant, getMySchedule);
+router.get("/group-gifts", loadParticipant, getGroupGifts);
 router.get("/gifts", loadParticipant, getMyGifts);
 router.post("/gift", loadParticipant, validate(createGiftSchema), addGiftOption);
 

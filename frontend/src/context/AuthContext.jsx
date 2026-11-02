@@ -2,8 +2,17 @@ import React, { useCallback, useEffect, useState } from "react";
 import { AUTH_EXPIRED_EVENT } from "../api";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./contexts";
+import { SCHEDULE_SEEN_PREFIX } from "../utils/schedule";
 
-const SESSION_KEYS = ["token", "user", "hasSeenChristmasTimeline", "selectedEventId"];
+const SESSION_KEYS = ["token", "user", "selectedEventId"];
+
+/** Borra los datos de la sesión, incluido qué cronogramas ya vio (equipos compartidos). */
+const clearSessionStorage = () => {
+  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(SCHEDULE_SEEN_PREFIX) || key === "hasSeenChristmasTimeline")
+    .forEach((key) => localStorage.removeItem(key));
+};
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -27,7 +36,7 @@ export function AuthProvider({ children }) {
 
   /** @param {{ expired?: boolean }} [options] expired: la sesión venció (se avisa en el login) */
   const logout = useCallback(({ expired = false } = {}) => {
-    SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+    clearSessionStorage();
     setToken(null);
     setUser(null);
     setSessionExpired(expired);
