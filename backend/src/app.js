@@ -66,7 +66,18 @@ app.get("/health/db", async (req, res) => {
 });
 
 // error handler
+// Los errores del cliente que detecta Express antes de las rutas (JSON
+// malformado, cuerpo demasiado grande) responden con su código 4xx y un
+// mensaje genérico; el resto es un fallo del servidor y se registra.
+const CLIENT_ERRORS = {
+  "entity.parse.failed": "El cuerpo de la solicitud no es un JSON válido.",
+  "entity.too.large": "La solicitud es demasiado grande.",
+};
+
 app.use((err, req, res, next) => {
+  if (err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ message: CLIENT_ERRORS[err.type] ?? "Solicitud inválida." });
+  }
   console.error("Unhandled error:", err);
   res.status(500).json({ message: "Server error" });
 });

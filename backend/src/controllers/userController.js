@@ -7,6 +7,7 @@ import { Op } from "sequelize";
 import { ERROR_CODES, MAX_GIFTS_PER_PARTICIPANT } from "../config/constants.js";
 import { Participant, GiftOption, Assignment, User, Event, sequelize } from "../models/index.js";
 import { MOST_RECENT_EVENT_ORDER } from "../middlewares/participantContext.js";
+import { signToken } from "../utils/tokens.js";
 import { toSafeUser } from "../utils/users.js";
 
 const serializeEvent = (event) => ({
@@ -306,7 +307,9 @@ export const changePassword = async (req, res) => {
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    res.json({ message: "Contraseña cambiada correctamente 🎄" });
+    // Las sesiones anteriores quedan invalidadas (ver utils/tokens.js); se
+    // entrega un token nuevo para que esta sesión siga abierta.
+    res.json({ message: "Contraseña cambiada correctamente 🎄", token: signToken(user) });
   } catch (err) {
     console.error("changePassword:", err);
     return res.status(500).json({ message: "Error en el servidor" });

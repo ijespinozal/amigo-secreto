@@ -1,12 +1,15 @@
 // src/controllers/authController.js
 // La entrada llega validada y normalizada por los esquemas de src/validation.
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { UniqueConstraintError } from "sequelize";
-import env from "../config/env.js";
 import { ERROR_CODES } from "../config/constants.js";
 import { User, Participant, sequelize } from "../models/index.js";
+import { signToken } from "../utils/tokens.js";
 import { toSafeUser } from "../utils/users.js";
+
+// Hash de referencia para que un teléfono inexistente tarde lo mismo que una
+// contraseña incorrecta: el tiempo de respuesta no revela qué números existen.
+const DUMMY_HASH = bcrypt.hashSync("amigo-secreto-dummy-password", 10);
 
 export const register = async (req, res) => {
   try {
@@ -48,14 +51,10 @@ export const login = async (req, res) => {
     const { phone, password } = req.body;
 
     const user = await User.findOne({ where: { phone } });
-    if (!user) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
+    const ok = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
+    if (!user || !ok) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(400).json({ message: "Usuario y/o contraseña incorrectos." });
-
-    const token = jwt.sign({ id: user.id }, env.jwt.secret, { expiresIn: env.jwt.expiresIn });
-
-    res.json({ token, user: toSafeUser(user) });
+    res.json({ token: signToken(user), user: toSafeUser(user) });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });

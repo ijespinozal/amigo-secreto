@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import api, { getErrorCode, getErrorMessage } from "../api";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../config/rules";
+import useAuth from "../hooks/useAuth";
 import useDialog from "../hooks/useDialog";
 import { omit } from "../utils/object";
 import PasswordField from "./auth/PasswordField";
@@ -29,6 +30,7 @@ export default function ChangePasswordModal({ open, onClose }) {
 function ChangePasswordForm({ onClose }) {
   const titleId = useId();
   const dialog = useDialog();
+  const { user, login } = useAuth();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
@@ -54,6 +56,8 @@ function ChangePasswordForm({ onClose }) {
     setSaving(true);
     try {
       const res = await api.post("/user/change-password", { currentPassword: form.current, newPassword: form.next });
+      // El backend cierra las demás sesiones y entrega un token nuevo para esta.
+      login(res.data.token, user);
       onClose();
       dialog.alert({ type: "success", icon: "🔐", title: "¡Contraseña actualizada!", message: res.data.message });
     } catch (err) {
