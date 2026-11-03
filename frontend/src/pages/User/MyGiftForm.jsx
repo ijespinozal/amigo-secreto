@@ -1,55 +1,80 @@
-import GiftForm from "../../components/GiftForm";
 import { useState } from "react";
 import api, { getErrorMessage } from "../../api";
+import AlertMessage from "../../components/AlertMessage";
 import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
-import AlertMessage from "../../components/AlertMessage";
 import EditGiftModal from "../../components/EditGiftModal";
+import GiftForm from "../../components/GiftForm";
 import Spinner from "../../components/Spinner";
+import GiftItem from "../../components/gifts/GiftItem";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import { MAX_GIFTS_PER_PARTICIPANT } from "../../config/rules";
 import useApiData from "../../hooks/useApiData";
+import useDialog from "../../hooks/useDialog";
 import useEvents from "../../hooks/useEvents";
+import useRequireEvent from "../../hooks/useRequireEvent";
+
+/** Progreso visual: un punto por opción (●●○). */
+function GiftProgress({ count }) {
+  return (
+    <div className="flex items-center gap-2" aria-label={`${count} de ${MAX_GIFTS_PER_PARTICIPANT} opciones registradas`}>
+      <div className="flex gap-1.5" aria-hidden="true">
+        {Array.from({ length: MAX_GIFTS_PER_PARTICIPANT }, (_, i) => (
+          <span key={i} className={`w-3 h-3 rounded-full ${i < count ? "bg-gold-400" : "bg-white/25"}`} />
+        ))}
+      </div>
+      <span className="font-festive font-semibold text-on-page-accent">
+        {count} de {MAX_GIFTS_PER_PARTICIPANT} opciones
+      </span>
+    </div>
+  );
+}
 
 export default function MyGiftForm() {
-  const { ready, selectedEventId, error: eventsError, reload: reloadEvents } = useEvents();
+  const { ready, selectedEvent, selectedEventId, error: eventsError, reload: reloadEvents } = useEvents();
   const hasEvent = ready && selectedEventId !== null;
+  const redirectingNoEvent = useRequireEvent();
+  const dialog = useDialog();
 
   const { data, error, reload } = useApiData("/user/gifts", { enabled: hasEvent, scope: selectedEventId });
   const gifts = data ?? [];
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [toDelete, setToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editGift, setEditGift] = useState(null);
+  const showError = (err, title) => dialog.alert({ type: "error", title, message: getErrorMessage(err) });
 
-  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
-
-  const removeGift = (id) => {
-    setDeleteId(id);
-    setConfirmOpen(true);
+  const saveEdit = async (values) => {
+    try {
+      await api.put(`/user/gift/${editing.id}`, values);
+      setEditing(null);
+      reload();
+      setToast("🎄 ¡Opción actualizada!");
+    } catch (err) {
+      showError(err, "No se pudo actualizar");
+    }
   };
 
   const confirmDelete = async () => {
+    setDeleting(true);
     try {
-      await api.delete(`/user/gift/${deleteId}`);
-      setAlert({
-        show: true,
-        type: "success",
-        message: "Se eliminó con éxito."
-      });
+      await api.delete(`/user/gift/${toDelete.id}`);
+      setToDelete(null);
       reload();
+      setToast("Opción eliminada.");
     } catch (err) {
-      setAlert({
-        show: true,
-        type: "error",
-        message: getErrorMessage(err, "Ocurrió un error. Por favor, comunicarse con el administrador.")
-      });
+      setToDelete(null);
+      showError(err, "No se pudo eliminar");
+    } finally {
+      setDeleting(false);
     }
-    setConfirmOpen(false);
-    setDeleteId(null);
   };
 
-  if (!ready) {
+  // Sin evento: vuelve al inicio con el aviso (mientras tanto, "cargando").
+  if (!ready || redirectingNoEvent) {
     return (
       <div className="flex justify-center items-center h-40">
         <Spinner size="lg" />
@@ -59,170 +84,94 @@ export default function MyGiftForm() {
 
   if (eventsError) {
     return (
-      <div className="alert alert-error shadow-md flex flex-wrap items-center justify-between gap-2 text-lg mt-4">
-        <span>⚠️ No pudimos cargar tus eventos. Revisa tu conexión e inténtalo de nuevo.</span>
-        <button className="btn btn-sm" onClick={reloadEvents}>Reintentar</button>
-      </div>
-    );
-  }
-
-  if (!hasEvent) {
-    return (
-      <div className="alert alert-info shadow-md flex items-center gap-2 text-lg mt-4">
-        🎄 Aún no perteneces a ningún evento. Cuando el administrador te agregue podrás registrar tus opciones de regalo.
-      </div>
+      <Card className="max-w-xl mx-auto text-center">
+        <p className="font-semibold text-red-700">⚠️ No pudimos cargar tus eventos. Revisa tu conexión e inténtalo de nuevo.</p>
+        <Button variant="secondary" size="sm" className="mt-4" onClick={() => reloadEvents().catch(() => {})}>Reintentar</Button>
+      </Card>
     );
   }
 
   return (
-    <div className="relative">
+    <div className="flex flex-col gap-8 animate-fade-in">
+      {toast && <AlertMessage type="success" message={toast} onClose={() => setToast(null)} />}
 
-      {/* ALERTA CENTRAL */}
-      {alert.show && (
-        <AlertMessage
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert({ show: false })}
-        />
+      {/* ENCABEZADO */}
+      <section>
+        <Button to="/user/home" variant="ghost" size="sm" className="text-on-page hover:bg-white/10 -ml-3">
+          ← Volver a Mi espacio
+        </Button>
+        <h1 className="font-festive font-bold text-3xl sm:text-4xl text-on-page drop-shadow-md tracking-tight mt-1">
+          Mis opciones de regalo <span aria-hidden="true">🎁</span>
+        </h1>
+        <p className="font-semibold text-on-page/90 mt-1">
+          {selectedEvent?.title} · Cuéntale a tu amigo secreto qué te gustaría recibir.
+        </p>
+        <div className="mt-3">
+          <GiftProgress count={gifts.length} />
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* ALTA */}
+        <Card title={<><span aria-hidden="true">➕</span> Agregar nueva opción</>}>
+          <GiftForm
+            giftsCount={gifts.length}
+            onAdded={() => {
+              reload();
+              setToast("🎁 ¡Opción guardada!");
+            }}
+            onError={(err) => showError(err, "No se pudo guardar")}
+          />
+        </Card>
+
+        {/* LISTA (en celular va primero: lo más consultado es lo ya registrado) */}
+        <Card
+          className="order-first lg:order-none"
+          title={<><span aria-hidden="true">📋</span> Tus opciones registradas</>}
+          actions={<Badge tone="gold">{gifts.length}/{MAX_GIFTS_PER_PARTICIPANT}</Badge>}
+        >
+          {error ? (
+            <div className="text-center space-y-3">
+              <p className="font-semibold text-red-700">{getErrorMessage(error, "No pudimos cargar tus opciones.")}</p>
+              <Button variant="secondary" size="sm" onClick={reload}>Reintentar</Button>
+            </div>
+          ) : gifts.length === 0 ? (
+            <div className="text-center py-6">
+              <div aria-hidden="true" className="text-5xl mb-2">🎄</div>
+              <p className="font-festive font-bold text-lg text-brand-strong">Aún no agregaste opciones</p>
+              <p className="text-sm font-semibold text-ink-soft mt-1">
+                Registra hasta {MAX_GIFTS_PER_PARTICIPANT} ideas para que tu amigo secreto acierte.
+              </p>
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {gifts.map((g, index) => (
+                <GiftItem
+                  key={g.id}
+                  gift={g}
+                  position={index + 1}
+                  onEdit={() => setEditing(g)}
+                  onDelete={() => setToDelete(g)}
+                />
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      {editing && (
+        <EditGiftModal key={editing.id} gift={editing} onSave={saveEdit} onClose={() => setEditing(null)} />
       )}
 
-      <div className="space-y-6 animate-fadeIn">
-        <h2 className="text-3xl font-bold text-white text-center md:text-left flex items-center gap-2">
-          🎄 Mis opciones de regalo
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* FORM */}
-          <Card title="Agregar nueva opción">
-            <GiftForm onAdded={reload} giftsCount={gifts.length} />
-          </Card>
-
-          {/* LISTA */}
-          <Card title="Tus opciones registradas">
-            {error ? (
-              <div className="text-sm text-red-600 flex items-center justify-between gap-2">
-                <span>{getErrorMessage(error, "No pudimos cargar tus opciones.")}</span>
-                <button className="btn btn-xs" onClick={reload}>Reintentar</button>
-              </div>
-            ) : gifts.length === 0 ? (
-              <p className="text-sm opacity-70">Aún no agregaste opciones.</p>
-            ) : (
-              <div className="space-y-3">
-                {gifts.map(g => (
-                  <div
-                    key={g.id}
-                    className="p-3 rounded bg-base-200 shadow-sm hover:bg-base-300 transition flex justify-between items-start"
-                  >
-
-                    {/* INFO */}
-                    <div className="flex-1 pr-4">
-                      <div className="font-semibold text-lg">{g.title}</div>
-                      <p className="text-sm">{g.note}</p>
-
-                      {g.donation && (
-                        <p className="text-xs opacity-70 mt-1">🎁 {g.donation}</p>
-                      )}
-
-                      {g.link && (
-                        <a
-                          href={g.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary text-sm underline block mt-1"
-                        >
-                          Ver link del regalo
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2 w-[20%] max-w-[60px]">
-                      {/* BOTÓN EDITAR */}
-                      <button
-                        onClick={() => { setEditGift(g); setEditOpen(true); }}
-                        className="h-10 w-[20%] max-w-[60px] flex items-center justify-center rounded-full !bg-green-600 hover:bg-green-700 text-white mb-2 transition"
-                        title="Editar"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6 text-white"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M16.862 3.487a2.25 2.25 0 013.182 3.182L7.5 19.314 3 21l1.686-4.5L16.862 3.487z" />
-                        </svg>
-
-                      </button>
-
-
-                      {/* BOTÓN ELIMINAR */}
-                      <button
-                        onClick={() => removeGift(g.id)}
-                        className="h-10 w-[20%] max-w-[60px] flex items-center justify-center rounded-full !bg-red-600 hover:bg-red-600 text-white transition"
-                        title="Eliminar"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-white hover:text-red-700 transition"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0
-                            01.117-.993L9 5h6a1 1 0 011 1v1M4 7h16"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <ConfirmModal
-          open={confirmOpen}
-          message="¿Seguro que deseas eliminar esta opción?"
-          onConfirm={confirmDelete}
-          onCancel={() => setConfirmOpen(false)}
-        />
-
-        <EditGiftModal
-          key={editGift?.id ?? "none"}
-          open={editOpen}
-          gift={editGift}
-          onClose={() => {
-            setEditOpen(false);
-            setEditGift(null);   // <--- RESETEO CLAVE
-          }}
-          onSave={async (updated) => {
-            try {
-              await api.put(`/user/gift/${updated.id}`, updated);
-
-              setAlert({
-                show: true,
-                type: "success",
-                message: "🎄 ¡Regalo actualizado!"
-              });
-
-              reload();
-              setEditOpen(false);
-              setEditGift(null);
-
-            } catch (err) {
-              setAlert({
-                show: true,
-                type: "error",
-                message: getErrorMessage(err, "Error actualizando regalo")
-              });
-            }
-          }}
-        />
-
-      </div>
+      <ConfirmModal
+        open={toDelete !== null}
+        icon="🗑️"
+        message={`¿Eliminar "${toDelete?.title}"?`}
+        details="Tu amigo secreto ya no verá esta opción."
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      />
     </div>
   );
 }

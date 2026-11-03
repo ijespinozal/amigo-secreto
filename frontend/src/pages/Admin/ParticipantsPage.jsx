@@ -1,52 +1,56 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import api, { getErrorMessage } from "../../api";
+import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
 import ParticipantList from "../../components/ParticipantList";
 import Spinner from "../../components/Spinner";
-import { PHONE_PATTERN } from "../../config/rules";
+import ManualParticipantForm from "../../components/admin/ManualParticipantForm";
+import StatCard from "../../components/admin/StatCard";
+import UserPicker from "../../components/admin/UserPicker";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
 import useApiData from "../../hooks/useApiData";
+import useDialog from "../../hooks/useDialog";
 import { formatCalendarDate } from "../../utils/date";
+
+const plural = (n, singular, pluralForm) => `${n} ${n === 1 ? singular : pluralForm}`;
+
+/** Resumen legible del alta múltiple. */
+const describeBulkResult = ({ added, linked, skipped }) =>
+  [
+    added && `${plural(added, "participante agregado", "participantes agregados")}.`,
+    linked && `${plural(linked, "participante sin cuenta quedó vinculado", "participantes sin cuenta quedaron vinculados")} a su cuenta.`,
+    skipped && `${plural(skipped, "ya estaba", "ya estaban")} en el evento.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
 export default function ParticipantsPage() {
   const { id } = useParams();
+  const dialog = useDialog();
   const { data, error, loading, reload } = useApiData(`/admin/event/${id}/participants`);
   const event = data?.event;
   const participants = data?.participants ?? [];
   const locked = event?.drawDone === true;
 
-  const [firstName, setFirst] = useState("");
-  const [lastName, setLast] = useState("");
-  const [phone, setPhone] = useState("");
-  const [saving, setSaving] = useState(false);
+  // Cambia cada vez que la lista se modifica: refresca los candidatos del buscador.
+  const [version, setVersion] = useState(0);
+  const refresh = () => {
+    reload();
+    setVersion((v) => v + 1);
+  };
 
-  // Confirmación genérica: { message, details, confirmLabel, action }
+  // Confirmación genérica: { icon, message, details, confirmLabel, tone, action }
   const [confirm, setConfirm] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const add = async (e) => {
-    e.preventDefault();
-    if (!PHONE_PATTERN.test(phone)) {
-      alert("El teléfono debe tener exactamente 9 dígitos");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await api.post("/admin/participant", { eventId: Number(id), phone, firstName, lastName });
-      setFirst("");
-      setLast("");
-      setPhone("");
-      reload();
-    } catch (err) {
-      alert(getErrorMessage(err, "Error agregando participante"));
-    } finally {
-      setSaving(false);
-    }
-  };
+  const showError = (err, title = "No se pudo completar") =>
+    dialog.alert({ type: "error", title, message: getErrorMessage(err) });
 
   const askRemove = (participant) =>
     setConfirm({
+      icon: "🗑️",
       message: `¿Quitar a ${participant.firstName} ${participant.lastName ?? ""} del evento?`,
       details: "También se eliminarán sus opciones de regalo en este evento.",
       confirmLabel: "Sí, quitar",
@@ -55,6 +59,7 @@ export default function ParticipantsPage() {
 
   const askResetDraw = () =>
     setConfirm({
+      icon: "🔄",
       message: "¿Reabrir el sorteo?",
       details: "Se borrarán las asignaciones actuales. Si alguien ya vio a su amigo secreto, al volver a sortear le puede tocar otra persona.",
       confirmLabel: "Sí, reabrir",
@@ -66,9 +71,10 @@ export default function ParticipantsPage() {
     try {
       await confirm.action();
       setConfirm(null);
-      reload();
+      refresh();
     } catch (err) {
-      alert(getErrorMessage(err));
+      setConfirm(null);
+      showError(err);
     } finally {
       setConfirmLoading(false);
     }
@@ -76,15 +82,13 @@ export default function ParticipantsPage() {
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto mt-8 p-6 rounded-2xl bg-white shadow-md text-center space-y-3">
-        <p className="text-red-600 font-semibold">
-          {getErrorMessage(error, "No se pudieron cargar los participantes.")}
-        </p>
-        <div className="flex justify-center gap-3">
-          <button className="btn btn-sm" onClick={reload}>Reintentar</button>
-          <Link to="/admin/dashboard" className="btn btn-sm">Volver al panel</Link>
+      <Card className="max-w-2xl mx-auto text-center">
+        <p className="font-semibold text-red-700">{getErrorMessage(error, "No se pudieron cargar los participantes.")}</p>
+        <div className="flex justify-center gap-3 mt-4">
+          <Button variant="secondary" size="sm" onClick={reload}>Reintentar</Button>
+          <Button variant="secondary" size="sm" to="/admin/dashboard">Volver al panel</Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -100,85 +104,79 @@ export default function ParticipantsPage() {
   const withGiftsCount = participants.filter((p) => p.giftsCount > 0).length;
 
   return (
-    <div className="space-y-8 p-4">
+    <div className="flex flex-col gap-8 animate-fade-in">
 
-      {/* TÍTULO */}
-      <div className="text-center space-y-1">
-        <h2 className="text-3xl font-extrabold text-green-700">
-          🎄 {event.title}
-        </h2>
-        <p className="text-white/90">
-          📅 {event.date_event ? formatCalendarDate(event.date_event) : "Fecha por definir"}
-        </p>
-        <p className="text-white/90 text-sm">
-          👥 {participants.length} participantes · ✅ {registeredCount} registrados · 🎁 {withGiftsCount} con regalos
-        </p>
-      </div>
-
-      {/* FORMULARIO / BLOQUEO POR SORTEO */}
-      {locked ? (
-        <div className="p-6 rounded-2xl bg-amber-50 border border-amber-300 shadow-md max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <p className="text-amber-900">
-            🔒 El sorteo ya se realizó. Para agregar o quitar participantes, primero reabre el sorteo.
+      {/* ENCABEZADO */}
+      <section className="flex flex-col gap-5">
+        <div>
+          <Button to="/admin/dashboard" variant="ghost" size="sm" className="text-on-page hover:bg-white/10 -ml-3">
+            ← Volver al panel
+          </Button>
+          <h1 className="font-festive font-bold text-3xl sm:text-4xl text-on-page drop-shadow-md tracking-tight mt-1">
+            Participantes <span aria-hidden="true">🎄</span>
+          </h1>
+          <p className="font-festive font-medium text-lg text-on-page-accent">
+            {event.title} · {event.date_event ? formatCalendarDate(event.date_event) : "Fecha por definir"}
           </p>
-          <button
-            onClick={askResetDraw}
-            className="px-4 py-2 !bg-amber-500 hover:!bg-amber-600 text-white rounded-lg shadow whitespace-nowrap"
-          >
-            🔄 Reabrir sorteo
-          </button>
         </div>
-      ) : (
-        <form
-          onSubmit={add}
-          className="p-6 rounded-2xl bg-white border border-green-200 shadow-md max-w-3xl mx-auto"
-        >
-          <h3 className="text-xl font-bold text-green-800 mb-4">
-            ➕ Agregar nuevo participante
-          </h3>
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-2xl">
+          <StatCard icon="👥" value={participants.length} label="Participantes" />
+          <StatCard icon="✅" value={registeredCount} label="Registrados" />
+          <StatCard icon="🎁" value={withGiftsCount} label="Con regalos" />
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              className="input input-bordered w-full rounded-lg"
-              placeholder="Nombre"
-              value={firstName}
-              onChange={(e) => setFirst(e.target.value)}
-              required
-              maxLength={100}
+      {/* AGREGAR / BLOQUEO POR SORTEO */}
+      {locked ? (
+        <section className="p-5 rounded-[var(--radius-panel)] bg-amber-50 border-2 border-amber-300 shadow-[var(--shadow-cozy)] flex flex-wrap items-center justify-between gap-4">
+          <p className="font-semibold text-amber-900 flex-1 min-w-[220px]">
+            <span aria-hidden="true">🔒</span> El sorteo ya se realizó. Para agregar o quitar participantes, primero reabre el sorteo.
+          </p>
+          <Button variant="warning" onClick={askResetDraw}>
+            <span aria-hidden="true">🔄</span> Reabrir sorteo
+          </Button>
+        </section>
+      ) : (
+        <Card title={<><span aria-hidden="true">➕</span> Agregar participantes</>}>
+          <div className="flex flex-col gap-5">
+            <UserPicker
+              eventId={id}
+              refreshKey={version}
+              onAdded={(result) => {
+                refresh();
+                dialog.alert({ type: "success", title: "¡Participantes agregados!", message: describeBulkResult(result) });
+              }}
+              onError={(err) => showError(err, "No se pudieron agregar")}
             />
-            <input
-              className="input input-bordered w-full rounded-lg"
-              placeholder="Apellido"
-              value={lastName}
-              onChange={(e) => setLast(e.target.value)}
-              maxLength={100}
-            />
-            <input
-              className="input input-bordered w-full rounded-lg"
-              placeholder="Teléfono (9 dígitos)"
-              inputMode="numeric"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              required
-              maxLength={9}
+            <ManualParticipantForm
+              eventId={id}
+              onAdded={(participant) => {
+                refresh();
+                dialog.alert({
+                  type: "success",
+                  title: "¡Participante agregado!",
+                  message: participant.userId
+                    ? `${participant.firstName} ${participant.lastName ?? ""} ya tenía cuenta: quedó vinculado con sus datos registrados.`
+                    : `${participant.firstName} quedará vinculado cuando se registre con el teléfono ${participant.phone}.`,
+                });
+              }}
+              onError={(err) => showError(err, "No se pudo agregar")}
             />
           </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="mt-4 w-full md:w-auto px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 hover:scale-[1.02] transition shadow-md disabled:opacity-60"
-          >
-            {saving ? "Agregando..." : "Agregar 🎁"}
-          </button>
-        </form>
+        </Card>
       )}
 
-      {/* LISTA DE PARTICIPANTES */}
-      <ParticipantList participants={participants} onRemove={askRemove} locked={locked} />
+      {/* LISTA */}
+      <Card
+        title={<><span aria-hidden="true">🎁</span> En este evento</>}
+        actions={participants.length > 0 && <Badge tone="gold">{plural(participants.length, "participante", "participantes")}</Badge>}
+      >
+        <ParticipantList participants={participants} onRemove={askRemove} locked={locked} />
+      </Card>
 
       <ConfirmModal
         open={confirm !== null}
+        icon={confirm?.icon}
         message={confirm?.message}
         details={confirm?.details}
         confirmLabel={confirm?.confirmLabel}

@@ -1,76 +1,51 @@
-import { TrashIcon } from "@heroicons/react/24/solid";
 import { MAX_GIFTS_PER_PARTICIPANT } from "../config/rules";
+import Avatar from "./ui/Avatar";
+import Badge from "./ui/Badge";
+import IconButton from "./ui/IconButton";
 
 /**
+ * Participantes de un evento.
  * @param {boolean} [locked] sorteo realizado: no se permite quitar participantes
  */
 export default function ParticipantList({ participants = [], onRemove, locked = false }) {
   if (participants.length === 0) {
     return (
-      <p className="text-center text-sm text-white/90">
-        Aún no hay participantes en este evento.
+      <p className="text-center font-semibold text-ink-soft py-4">
+        🎄 Aún no hay participantes en este evento. Agrégalos arriba.
       </p>
     );
   }
 
   return (
-    <div className="space-y-3 animate-fade-in max-w-3xl lg:max-w-4xl mx-auto">
-      {participants.map(p => (
-        <div
+    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-fade-in">
+      {participants.map((p) => (
+        <li
           key={p.id}
-          className="p-4 bg-white border border-red-200/40 rounded-xl shadow-sm
-                     hover:shadow-md transition-all duration-200
-                     flex items-center justify-between gap-3"
+          aria-label={`${p.firstName} ${p.lastName ?? ""}`}
+          className="flex items-center gap-3 p-4 bg-white rounded-[var(--radius-card)] border-2 border-gold-400/30 shadow-sm"
         >
-          {/* Información principal */}
-          <div className="flex flex-col">
-            <p className="text-lg font-semibold text-red-700 drop-shadow-sm">
-              🎁 {p.firstName} {p.lastName}
+          <Avatar firstName={p.firstName} lastName={p.lastName} />
+          <div className="min-w-0 flex-1">
+            <p className="font-festive font-bold text-brand-strong truncate">{p.firstName} {p.lastName}</p>
+            <p className="text-xs font-semibold text-ink-soft tabular-nums">
+              {p.phone}{p.email && ` · ${p.email}`}
             </p>
-
-            <div className="text-sm text-gray-600 mt-1">
-              {p.phone && <span>{p.phone}</span>}
-              {p.email && (
-                <span className="ml-2 text-gray-500">
-                  • {p.email}
-                </span>
-              )}
-            </div>
-
-            {/* Estado del participante */}
-            <div className="flex flex-wrap gap-2 mt-2 text-xs font-semibold">
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
               {p.registered ? (
-                <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">✅ Registrado</span>
+                <Badge tone="green">✅ Registrado</Badge>
               ) : (
-                <span
-                  className="px-2 py-1 rounded-full bg-amber-100 text-amber-800"
-                  title="Aún no creó su cuenta con este teléfono"
-                >
-                  ⏳ Sin cuenta
-                </span>
+                <Badge tone="gold" className="cursor-help">
+                  <span title="Aún no creó su cuenta con este teléfono">⏳ Sin cuenta</span>
+                </Badge>
               )}
-              <span
-                className={`px-2 py-1 rounded-full ${
-                  p.giftsCount > 0 ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                🎁 {p.giftsCount}/{MAX_GIFTS_PER_PARTICIPANT} regalos
-              </span>
+              <Badge tone={p.giftsCount > 0 ? "blue" : "gray"}>🎁 {p.giftsCount}/{MAX_GIFTS_PER_PARTICIPANT}</Badge>
             </div>
           </div>
-
-          {/* BOTÓN ELIMINAR */}
           {!locked && (
-            <button
-              onClick={() => onRemove(p)}
-              title="Quitar participante"
-              className="h-10 w-[20%] max-w-[60px] flex items-center justify-center rounded-full !bg-red-600 hover:bg-red-600 text-white transition"
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
+            <IconButton label="Quitar participante" tone="danger" onClick={() => onRemove(p)}>🗑️</IconButton>
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

@@ -1,90 +1,54 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { toGiftForm, validateGift } from "../utils/gifts";
+import GiftFields from "./gifts/GiftFields";
+import Button from "./ui/Button";
+import Modal from "./ui/Modal";
 
 /**
- * El padre debe montarlo con `key={gift.id}`: así el formulario se inicializa
- * con cada regalo sin sincronizar estado dentro de un efecto.
+ * Edición de una opción de regalo. El padre debe montarlo con `key={gift.id}`
+ * para que el formulario se inicialice con cada regalo.
+ * @param {(values) => Promise<void>} onSave
  */
-export default function EditGiftModal({ open, gift, onClose, onSave }) {
-  const [form, setForm] = useState(gift || {});
+export default function EditGiftModal({ gift, onSave, onClose }) {
+  const titleId = useId();
+  const [form, setForm] = useState(() => toGiftForm(gift));
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
-  if (!open) return null;
+  const submit = async (e) => {
+    e.preventDefault();
+    const next = validateGift(form);
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-
-      {/* CONTENEDOR */}
-      <div className="relative bg-white/95 backdrop-blur-xl p-7 rounded-3xl shadow-2xl w-full max-w-md animate-fadeInUp border-2 border-red-300">
-
-        {/* 🎄 HEADER NAVIDEÑO */}
-        <div className="text-center mb-4">
-          <div className="text-4xl mb-1">🎄</div>
-          <h2 className="text-2xl font-extrabold text-red-700 drop-shadow">
-            Editar opción de regalo
-          </h2>
+    <Modal open onClose={saving ? undefined : onClose} labelledBy={titleId} className="max-w-md p-6 sm:p-7">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-5">
+        <div className="text-center">
+          <div aria-hidden="true" className="text-4xl mb-1">🎁</div>
+          <h2 id={titleId} className="font-festive font-bold text-2xl text-brand-strong">Editar opción de regalo</h2>
         </div>
 
-        {/* FORMULARIO */}
-        <div className="space-y-3">
-
-          <input
-            type="text"
-            placeholder="Título"
-            value={form.title || ""}
-            onChange={e => setForm({ ...form, title: e.target.value })}
-            className="input input-bordered w-full bg-white/80 border-red-300 focus:border-green-600 rounded-xl shadow-sm"
-          />
-
-          <input
-            placeholder="Nota"
-            value={form.note || ""}
-            onChange={e => setForm({ ...form, note: e.target.value })}
-            className="textarea textarea-bordered w-full bg-white/80 border-red-300 focus:border-green-600 rounded-xl shadow-sm"
-            rows={3}
-          />
-
-          <input
-            type="text"
-            placeholder="Donación (opcional)"
-            value={form.donation || ""}
-            onChange={e => setForm({ ...form, donation: e.target.value })}
-            className="input input-bordered w-full bg-white/80 border-red-300 focus:border-green-600 rounded-xl shadow-sm"
-          />
-
-          <input
-            type="url"
-            placeholder="Link del regalo (opcional, https://...)"
-            value={form.link || ""}
-            onChange={e => setForm({ ...form, link: e.target.value })}
-            className="input input-bordered w-full bg-white/80 border-red-300 focus:border-green-600 rounded-xl shadow-sm"
-          />
-
-        </div>
-
-        {/* BOTONES */}
-        <div className="flex gap-4 mt-6">
-
-          <button
-            onClick={() => onSave(form)}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl shadow-md transition flex items-center justify-center gap-1"
-          >
-            <span>🎁</span> Guardar
-          </button>
-
-          <button
-            onClick={onClose}
-            className="flex-1 !bg-red-600 bg-gray-400 hover:bg-gray-500 text-white py-2 rounded-xl shadow-md transition"
-          >
-            Cancelar
-          </button>
-
-        </div>
-
-        {/* ⭐ DECORACIÓN NAVIDEÑA SUPERIOR */}
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-4xl drop-shadow">
-          ⭐
-        </div>
-
-      </div>
-    </div>
+        <fieldset disabled={saving} className="contents">
+          <GiftFields value={form} errors={errors} onChange={setForm} />
+          <div className="flex gap-3">
+            <Button type="submit" block className="rounded-xl py-3">
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </Button>
+            <Button variant="neutral" block onClick={onClose} className="rounded-xl py-3">
+              Cancelar
+            </Button>
+          </div>
+        </fieldset>
+      </form>
+    </Modal>
   );
 }

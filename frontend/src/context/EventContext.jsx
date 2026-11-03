@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api, { setActiveEventId } from "../api";
 import useAuth from "../hooks/useAuth";
 import { EventContext } from "./contexts";
@@ -18,8 +18,27 @@ export function EventProvider({ children }) {
   // Se guarda para qué usuario se cargó: así "cargando" se deriva sin
   // reiniciar estado de forma síncrona dentro del efecto.
   const [state, setState] = useState({ userId: null, events: [], selectedEventId: null, error: null });
-  const [reloadCount, setReloadCount] = useState(0);
 
+  // Refs con los últimos valores, para las cargas asíncronas.
+  const userIdRef = useRef(userId);
+  const stateRef = useRef(state);
+  useEffect(() => {
+    userIdRef.current = userId;
+    stateRef.current = state;
+  });
+
+  /** Aplica una lista de eventos conservando la selección si sigue siendo válida. */
+  const applyEvents = useCallback((forUserId, events) => {
+    const current = stateRef.current.userId === forUserId ? stateRef.current.selectedEventId : null;
+    const stored = Number(localStorage.getItem(STORAGE_KEY));
+    const selectedEventId =
+      [current, stored].map((id) => events.find((e) => e.id === id)?.id).find(Boolean) ?? events[0]?.id ?? null;
+
+    setActiveEventId(selectedEventId);
+    setState({ userId: forUserId, events, selectedEventId, error: null });
+  }, []);
+
+  // Carga inicial (y al cambiar de usuario).
   useEffect(() => {
     if (!userId) {
       setActiveEventId(null);
@@ -30,14 +49,7 @@ export function EventProvider({ children }) {
     const loadEvents = async () => {
       try {
         const res = await api.get("/user/events");
-        if (cancelled) return;
-
-        const events = res.data.events;
-        const stored = Number(localStorage.getItem(STORAGE_KEY));
-        const selectedEventId = events.find((e) => e.id === stored)?.id ?? events[0]?.id ?? null;
-
-        setActiveEventId(selectedEventId);
-        setState({ userId, events, selectedEventId, error: null });
+        if (!cancelled) applyEvents(userId, res.data.events);
       } catch (error) {
         if (!cancelled) setState({ userId, events: [], selectedEventId: null, error });
       }
@@ -47,7 +59,7 @@ export function EventProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [userId, reloadCount]);
+  }, [userId, applyEvents]);
 
   const selectEvent = useCallback((eventId) => {
     setActiveEventId(eventId);
@@ -55,7 +67,22 @@ export function EventProvider({ children }) {
     setState((prev) => ({ ...prev, selectedEventId: eventId }));
   }, []);
 
-  const reload = useCallback(() => setReloadCount((count) => count + 1), []);
+  /**
+   * Vuelve a pedir los eventos al servidor.
+   * @returns {Promise<Array>} los eventos frescos (para decidir sin esperar un render)
+   */
+  const reload = useCallback(async () => {
+    const forUserId = userIdRef.current;
+    if (!forUserId) return [];
+    try {
+      const res = await api.get("/user/events");
+      if (userIdRef.current === forUserId) applyEvents(forUserId, res.data.events);
+      return res.data.events;
+    } catch (error) {
+      if (userIdRef.current === forUserId) setState({ userId: forUserId, events: [], selectedEventId: null, error });
+      throw error;
+    }
+  }, [applyEvents]);
 
   const value = useMemo(() => {
     const ready = userId !== null && state.userId === userId;

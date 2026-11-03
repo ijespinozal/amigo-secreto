@@ -37,8 +37,18 @@ export const getMyEvents = async (req, res) => {
       order: MOST_RECENT_EVENT_ORDER,
     });
 
+    // Tamaño de cada grupo en una sola consulta agregada.
+    const counts = participants.length
+      ? await Participant.count({ where: { eventId: participants.map((p) => p.eventId) }, group: ["eventId"] })
+      : [];
+    const countByEvent = new Map(counts.map((row) => [row.eventId, Number(row.count)]));
+
     res.json({
-      events: participants.map((p) => ({ participantId: p.id, ...serializeEvent(p.Event) })),
+      events: participants.map((p) => ({
+        participantId: p.id,
+        ...serializeEvent(p.Event),
+        participantsCount: countByEvent.get(p.eventId) ?? 0,
+      })),
     });
   } catch (err) {
     console.error("getMyEvents:", err);
@@ -233,6 +243,7 @@ export const getEventDonations = async (req, res) => {
       (p.GiftOptions || [])
         .filter((g) => g.donation && g.donation.trim() !== "")
         .map((g) => ({
+          participantId: p.id,
           firstName: p.firstName,
           lastName: p.lastName,
           donation: g.donation,

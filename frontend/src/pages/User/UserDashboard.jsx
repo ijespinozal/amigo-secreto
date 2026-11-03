@@ -1,112 +1,34 @@
-import { Link } from "react-router-dom";
-import Card from "../../components/Card";
-import useAuth from "../../hooks/useAuth";
 import { useEffect, useState } from "react";
-import ScheduleModal from "../../components/ScheduleModal";
-import { scheduleSeenKey } from "../../utils/schedule";
+import { useNavigate } from "react-router-dom";
+import api, { getErrorMessage } from "../../api";
+import useAuth from "../../hooks/useAuth";
+import useDialog from "../../hooks/useDialog";
 import useApiData from "../../hooks/useApiData";
 import useEvents from "../../hooks/useEvents";
-import { daysUntil, formatCalendarDate } from "../../utils/date";
-
-/** Texto del banner según cuántos días faltan para el evento. */
-const buildCountdownMessage = (event) => {
-  const days = daysUntil(event?.date_event);
-  if (days === null) return <>🎄 Ve agregando tus opciones de regalo. 🎁✨</>;
-
-  const date = formatCalendarDate(event.date_event, { day: "numeric", month: "long" });
-  if (days < 0) return <>🎄 Nuestra reunión navideña fue el <strong>{date}</strong>. ¡Gracias por participar! 🎁✨</>;
-  if (days === 0) return <>🎉 ¡Hoy es nuestra reunión navideña! — 📅 <strong>{date}</strong> 🎁✨</>;
-
-  return (
-    <>
-      🎄 Falta{days === 1 ? "" : "n"} <strong>{days}</strong> día{days === 1 ? "" : "s"} para nuestra
-      reunión navideña — 📅 <strong>{date}</strong> 🎁✨. Ve agregando tus opciones de regalo.🏃🏽
-    </>
-  );
-};
-
-// Imágenes de premios (Rutas desde public/imagenes)
-const prizeImages = [
-  "/images/CANASTAUNO.png",
-  "/images/CANASTADOS.png",
-  "/images/AUDIFONOP9.jpg",
-  "/images/HUEVOS.jpg",
-  "/images/LENTES.jpg",
-  "/images/LENTESSUNGLASSES.jpg",
-  "/images/MINIVENTILADOR.jpg",
-  "/images/MORRAL.jpg",
-  "/images/SECADORA.jpg",
-  "/images/PARLANTE.jpg",
-  "/images/VENTILADOR.jpg",
-  "/images/TRAGOS.jpg"
-];
-
-// Componente Interno del Carrusel
-const PrizeCarousel = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % prizeImages.length);
-    }, 3000); // Cambia imagen cada 3 segundos
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="relative w-full h-64 md:h-80 rounded-2xl overflow-hidden shadow-2xl border-4 border-[#ffdf80]/50 group">
-      {/* Fondo decorativo */}
-      <div className="absolute inset-0 bg-[#790000]"></div>
-      
-      {/* Imagen */}
-      <img 
-        src={prizeImages[currentIndex]} 
-        alt="Premio Navideño" 
-        className="w-full h-full object-contain md:object-contain transition-all duration-700 ease-in-out transform scale-100 group-hover:scale-105"
-      />
-
-      {/* Overlay Navideño inferior */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 flex justify-between items-end">
-        <div>
-          <h4 className="text-[#ffdf80] font-bold text-lg flex items-center gap-2">
-            <span className="animate-bounce">🎁</span> Premios del Evento
-          </h4>
-          <p className="text-white/90 text-sm">¡Mira lo que puedes ganar!</p>
-        </div>
-        
-        {/* Indicadores (puntitos) */}
-        <div className="flex gap-1 mb-1">
-          {prizeImages.map((_, idx) => (
-            <div 
-              key={idx}
-              className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                idx === currentIndex ? "bg-[#0a9400] w-6" : "bg-white/50"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Decoración Esquinas */}
-      <div className="absolute top-2 left-2 text-2xl">❄️</div>
-      <div className="absolute top-2 right-2 text-2xl">✨</div>
-    </div>
-  );
-};
+import ScheduleModal from "../../components/ScheduleModal";
+import ActionCard from "../../components/dashboard/ActionCard";
+import CountdownHero from "../../components/dashboard/CountdownHero";
+import DonationsCard from "../../components/dashboard/DonationsCard";
+import PrizeCarousel from "../../components/dashboard/PrizeCarousel";
+import Badge from "../../components/ui/Badge";
+import { MAX_GIFTS_PER_PARTICIPANT } from "../../config/rules";
+import { scheduleSeenKey } from "../../utils/schedule";
+import { NO_EVENT_DIALOG, NOT_DRAWN_DIALOG } from "../../config/messages";
 
 export default function UserDashboard() {
   const { user } = useAuth();
-  const { ready, selectedEvent, selectedEventId } = useEvents();
-  const { data: donationsData } = useApiData("/user/donations", {
-    enabled: ready && selectedEventId !== null,
-    scope: selectedEventId,
-  });
-  const donations = donationsData ?? [];
+  const dialog = useDialog();
+  const navigate = useNavigate();
+  // Tarjeta cuya acción se está consultando al servidor ("gifts" | "secret" | "group").
+  const [busyCard, setBusyCard] = useState(null);
+  const { ready, selectedEvent, selectedEventId, reload: reloadEvents } = useEvents();
+  const eventScope = { enabled: ready && selectedEventId !== null, scope: selectedEventId };
+
+  const { data: donationsData } = useApiData("/user/donations", eventScope);
+  const { data: gifts } = useApiData("/user/gifts", eventScope);
 
   // Cronograma del evento: solo existe si el admin lo creó y lo publicó.
-  const { data: schedule } = useApiData("/user/schedule", {
-    enabled: ready && selectedEventId !== null,
-    scope: selectedEventId,
-  });
+  const { data: schedule } = useApiData("/user/schedule", eventScope);
   const hasSchedule = schedule?.available === true;
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -126,8 +48,67 @@ export default function UserDashboard() {
     setShowSchedule(false);
   };
 
-  // Sin evento (aún no fue agregado) el banner muestra el mensaje genérico.
-  const countdownMessage = buildCountdownMessage(selectedEvent);
+  const drawDone = selectedEvent?.drawDone === true;
+
+  /**
+   * ¿Puede entrar a una pantalla que requiere evento? Si el dato local dice
+   * que no tiene, se consulta al servidor antes de avisar: el admin pudo
+   * agregarlo mientras esta pantalla estaba abierta.
+   */
+  const ensureEvent = async () => {
+    if (selectedEvent) return true;
+    const events = await reloadEvents();
+    if (events.length > 0) return true;
+    dialog.alert(NO_EVENT_DIALOG);
+    return false;
+  };
+
+  /** Ejecuta la acción de una tarjeta mostrando "Consultando..." y los errores en un diálogo. */
+  const cardAction = (card, action) => async () => {
+    setBusyCard(card);
+    try {
+      await action();
+    } catch (err) {
+      dialog.alert({ type: "error", message: getErrorMessage(err, "No pudimos completar la acción. Inténtalo de nuevo.") });
+    } finally {
+      setBusyCard(null);
+    }
+  };
+
+  const openGifts = cardAction("gifts", async () => {
+    if (await ensureEvent()) navigate("/user/gifts");
+  });
+
+  const openGroupGifts = cardAction("group", async () => {
+    if (await ensureEvent()) navigate("/user/group-gifts");
+  });
+
+  /**
+   * Antes del sorteo no tiene sentido entrar a "Mi amigo secreto": se avisa
+   * aquí mismo. Se consulta al servidor (no al estado local) porque el admin
+   * pudo sortear mientras esta pantalla estaba abierta.
+   */
+  const openSecretFriend = cardAction("secret", async () => {
+    if (!(await ensureEvent())) return;
+
+    const res = await api.get("/user/secret-friend");
+    if (res.data.revealed) {
+      await reloadEvents(); // el sorteo ocurrió mientras la pantalla estaba abierta
+      navigate("/user/secret");
+      return;
+    }
+    const goToGifts = await dialog.confirm({
+      ...NOT_DRAWN_DIALOG,
+      message: `El administrador todavía no realiza el sorteo de "${res.data.event.title}". Cuando lo haga, podrás descubrir a tu amigo secreto. Mientras tanto, registra tus opciones de regalo 🎁`,
+      confirmLabel: "Registrar mis regalos",
+      cancelLabel: "Entendido",
+    });
+    if (goToGifts) navigate("/user/gifts");
+  });
+
+  const busyCta = "Consultando...";
+  // Con los eventos ya cargados y ninguno: las tarjetas lo anticipan.
+  const noEventBadge = ready && !selectedEvent ? <Badge tone="gray">Sin evento</Badge> : null;
 
   return (
     <>
@@ -137,145 +118,88 @@ export default function UserDashboard() {
         onClose={handleCloseSchedule}
         activities={schedule?.activities}
       />
-      <div className="space-y-8 animate-fadeIn">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-          🎅 Bienvenid@ {user.firstName}
-        </h1>
-        {selectedEvent && (
-          <p className="text-white/90 -mt-6">🎄 {selectedEvent.title}</p>
-        )}
 
-        {/* ⭐ Banner Navideño Horizontal ⭐ */}
-        <div className="christmas-banner-container">
-          <div className="christmas-banner-track">
-            <div className="christmas-banner">{countdownMessage}</div>
-
-            {/* DUPLICADO — requerido para scroll infinito */}
-            <div className="christmas-banner">{countdownMessage}</div>
-          </div>
-        </div>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          <Link to="/user/gifts" className="group">
-            <Card className="p-6 hover:shadow-xl hover:bg-base-200 transition">
-              <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
-                🎁 Mis opciones de regalo
-              </h3>
-              <p className="opacity-80 mt-2">
-                Agrega hasta 3 opciones para que tu amigo secreto te conozca.
-              </p>
-            </Card>
-          </Link>
-
-          <Link to="/user/secret" className="group">
-            <Card className="p-6 hover:shadow-xl hover:bg-base-200 transition">
-              <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
-                🎄 Ver mi amigo secreto
-              </h3>
-              <p className="opacity-80 mt-2">
-                Cuando el administrador realice el sorteo podrás verlo aquí.
-              </p>
-            </Card>
-          </Link>
-
-          <Link to="/user/group-gifts" className="group md:col-span-2">
-            <Card className="p-6 hover:shadow-xl hover:bg-base-200 transition">
-              <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
-                👀 Opciones de regalo del grupo
-              </h3>
-              <p className="opacity-80 mt-2">
-                Mira qué les gustaría recibir a los demás participantes.
-              </p>
-            </Card>
-          </Link>
-
-          {hasSchedule && (
-            // index.css estiliza todos los <button>: se neutraliza para que luzca como las otras tarjetas.
-            <button
-              type="button"
-              onClick={() => setShowSchedule(true)}
-              className="group text-left !bg-transparent !p-0 !text-inherit hover:![transform:none] md:col-span-2"
-            >
-              <Card>
-                <h3 className="text-xl font-semibold text-green-700 flex items-center gap-2">
-                  📅 Ver cronograma navideño
-                </h3>
-                <p className="opacity-80 mt-2 text-gray-700">
-                  {schedule.activities.length} actividades con horarios y premios. ¡Prepárate para ganar!
-                </p>
-              </Card>
-            </button>
+      <div className="flex flex-col gap-8 animate-fade-in">
+        {/* SALUDO */}
+        <section className="text-center sm:text-left flex flex-col gap-1.5">
+          <h1 className="font-festive font-bold text-3xl sm:text-4xl md:text-5xl text-on-page drop-shadow-md tracking-tight">
+            ¡Hola, {user.firstName}! <span aria-hidden="true">🎄✨</span>
+          </h1>
+          {selectedEvent && (
+            <p className="font-festive font-medium text-lg sm:text-xl text-on-page-accent">
+              <span aria-hidden="true">🎅</span> {selectedEvent.title}
+            </p>
           )}
+        </section>
 
-          {/* 🎡 CARRUSEL DE PREMIOS (Ubicado debajo de las tarjetas) */}
-          <div className="col-span-1 md:col-span-2"> 
-             <PrizeCarousel />
-          </div>
+        <CountdownHero event={selectedEvent} />
 
-          <div className="mt-6 p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/25 shadow-2xl animate-fadeInUp text-white relative overflow-hidden col-span-1 md:col-span-2">
+        {/* ACCESOS */}
+        <section
+          aria-label="Accesos"
+          className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 ${hasSchedule ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+        >
+          <ActionCard
+            to={selectedEvent ? "/user/gifts" : undefined}
+            onClick={selectedEvent ? undefined : openGifts}
+            disabled={busyCard === "gifts"}
+            icon="🎁"
+            badge={noEventBadge ?? (gifts && <Badge tone="gold">{gifts.length}/{MAX_GIFTS_PER_PARTICIPANT}</Badge>)}
+            title="Mis opciones de regalo"
+            description={`Registra hasta ${MAX_GIFTS_PER_PARTICIPANT} opciones de lo que te gustaría recibir este año.`}
+            cta={
+              busyCard === "gifts" ? busyCta
+                : gifts?.length ? <>Editar deseos <span aria-hidden="true">✏️</span></>
+                : <>Agregar deseos <span aria-hidden="true">➕</span></>
+            }
+          />
+          <ActionCard
+            to={drawDone ? "/user/secret" : undefined}
+            onClick={drawDone ? undefined : openSecretFriend}
+            disabled={busyCard === "secret"}
+            icon="✨"
+            iconBg="bg-emerald-100"
+            highlight
+            badge={
+              noEventBadge ?? (selectedEvent && (drawDone
+                ? <Badge tone="green">¡Ya puedes verlo! 🎉</Badge>
+                : <Badge tone="gold">En espera ⏳</Badge>))
+            }
+            title="Ver mi amigo secreto"
+            description={drawDone ? "El sorteo ya se realizó: descubre a quién te tocó regalar." : "Cuando el administrador realice el sorteo podrás verlo aquí."}
+            cta={
+              busyCard === "secret" ? busyCta : <><span aria-hidden="true">👁️</span> {drawDone ? "Revelar amigo" : "Ver estado"}</>
+            }
+            ctaVariant={drawDone ? "primary" : "secondary"}
+          />
+          <ActionCard
+            to={selectedEvent ? "/user/group-gifts" : undefined}
+            onClick={selectedEvent ? undefined : openGroupGifts}
+            disabled={busyCard === "group"}
+            icon="📜"
+            badge={noEventBadge ?? (selectedEvent?.participantsCount > 0 && <Badge tone="gold">{selectedEvent.participantsCount} participantes</Badge>)}
+            title="Opciones de regalo del grupo"
+            description="Mira las ideas de regalo de los demás integrantes para inspirarte."
+            cta={busyCard === "group" ? busyCta : <>Ver sugerencias <span aria-hidden="true">→</span></>}
+          />
+          {hasSchedule && (
+            <ActionCard
+              onClick={() => setShowSchedule(true)}
+              icon="🗓️"
+              iconBg="bg-red-100"
+              badge={<Badge tone="red">{schedule.activities.length} actividades</Badge>}
+              title="Ver cronograma navideño"
+              description="Actividades, horarios y premios para celebrar juntos."
+              cta={<>Ver programa <span aria-hidden="true">📅</span></>}
+            />
+          )}
+        </section>
 
-            {/* ⭐ Encabezado con estilo navideño */}
-            <h3 className="text-2xl font-extrabold mb-5 text-center flex items-center gap-3 tracking-wide">
-              <span className="text-[#ffdf80] text-xl animate-bounce ">🎄</span>
-              Donaciones del Evento
-              <span className="text-[#ffdf80] text-xl animate-bounce ">✨</span>
-            </h3>
+        <PrizeCarousel />
 
-            {/* Input personalizado */}
-            {/* <label className="block mb-4 font-medium text-white/90">
-              <span className="mr-2">🎫 Event ID:</span>
-              <input
-                type="number"
-                value={eventId}
-                onChange={(e) => setEventId(e.target.value)}
-                className="px-3 py-2 bg-white/90 text-black rounded-lg outline-none shadow-inner w-28 focus:ring-2 focus:ring-green-500"
-              />
-            </label> */}
-
-            {/* Tabla o mensaje */}
-            {donations.length === 0 ? (
-              <p className="opacity-90 italic">🎅 No hay donaciones para este evento aún.</p>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/40 shadow-lg backdrop-blur-sm bg-white/10">
-                <table className="table w-full text-white">
-                  <thead className="bg-white/20">
-                    <tr>
-                      <th className="text-white py-3">👤 Participante</th>
-                      <th className="text-white py-3">💰 Donación</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donations.map((d, i) => {
-                      const fullName = `${d.firstName} ${d.lastName}`;
-                      const prevFullName =
-                        i > 0 ? `${donations[i - 1].firstName} ${donations[i - 1].lastName}` : null;
-
-                      const showName = fullName !== prevFullName;
-
-                      return (
-                        <tr key={i} className="hover:bg-white/10 transition">
-                          <td className="py-3 px-3 text-center">
-                            {showName ? fullName : ""}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            {d.donation}
-                          </td>
-                        </tr>
-                      );
-                    })}
-
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-          </div>
-
-
-
-        </div>
+        {selectedEvent && (
+          <DonationsCard donations={donationsData ?? []} myParticipantId={selectedEvent.participantId} />
+        )}
       </div>
     </>
   );

@@ -1,77 +1,53 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import Button from "./ui/Button";
+import Modal from "./ui/Modal";
+import TextField from "./ui/TextField";
 
 /**
  * Edición de un evento. El padre debe montarlo con `key={event.id}` para que
  * el formulario se inicialice con cada evento.
  */
 export default function EventFormModal({ event, saving = false, onSave, onClose }) {
+  const titleId = useId();
   const [form, setForm] = useState({
     title: event.title ?? "",
     description: event.description ?? "",
     date_event: event.date_event ?? "",
   });
+  const [errors, setErrors] = useState({});
 
   const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const submit = (e) => {
     e.preventDefault();
-    onSave(form);
+    const next = {};
+    if (!form.title.trim()) next.title = "El título es obligatorio.";
+    if (!form.date_event) next.date_event = "La fecha es obligatoria.";
+    setErrors(next);
+    if (Object.keys(next).length === 0) onSave(form);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-      <form
-        onSubmit={submit}
-        className="relative bg-white/95 p-7 rounded-3xl shadow-2xl w-[92%] max-w-md animate-fadeInUp border-2 border-green-300 space-y-3"
-      >
-        <h2 className="text-2xl font-extrabold text-green-700 text-center">✏️ Editar evento</h2>
+    <Modal open onClose={saving ? undefined : onClose} labelledBy={titleId} className="max-w-md p-6 sm:p-7">
+      <form onSubmit={submit} noValidate className="space-y-4">
+        <div className="text-center">
+          <div aria-hidden="true" className="text-4xl mb-1">✏️</div>
+          <h2 id={titleId} className="font-festive font-bold text-2xl text-brand-strong">Editar evento</h2>
+        </div>
 
-        <input
-          className="input input-bordered w-full rounded-lg"
-          placeholder="Título del evento"
-          value={form.title}
-          onChange={update("title")}
-          required
-          maxLength={255}
-        />
-
-        <input
-          className="input input-bordered w-full rounded-lg"
-          placeholder="Descripción del evento"
-          value={form.description}
-          onChange={update("description")}
-          maxLength={2000}
-        />
-
-        <label className="block text-sm font-medium text-gray-700">
-          Fecha del evento
-          <input
-            type="date"
-            className="input input-bordered w-full rounded-lg mt-1"
-            value={form.date_event}
-            onChange={update("date_event")}
-            required
-          />
-        </label>
+        <TextField label="Título del evento" value={form.title} onChange={update("title")} maxLength={255} error={errors.title} />
+        <TextField label="Descripción" value={form.description} onChange={update("description")} maxLength={2000} placeholder="Opcional" />
+        <TextField label="Fecha del evento" type="date" value={form.date_event} onChange={update("date_event")} error={errors.date_event} />
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg !bg-green-700 hover:!bg-green-800 text-white font-semibold disabled:opacity-60"
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="flex-1 py-2 rounded-lg !bg-red-600 hover:bg-red-700 text-white font-semibold"
-          >
+          <Button type="submit" block disabled={saving} className="rounded-xl py-3">
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </Button>
+          <Button variant="neutral" block disabled={saving} onClick={onClose} className="rounded-xl py-3">
             Cancelar
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

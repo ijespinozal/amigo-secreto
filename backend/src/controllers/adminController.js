@@ -1,7 +1,7 @@
 // src/controllers/adminController.js
 // La entrada llega validada y normalizada por los esquemas de src/validation.
 import bcrypt from "bcryptjs";
-import { UniqueConstraintError } from "sequelize";
+import { Op, UniqueConstraintError } from "sequelize";
 import { ERROR_CODES, MIN_PARTICIPANTS_FOR_DRAW } from "../config/constants.js";
 import { Event, Participant, User, Assignment, GiftOption, ScheduleActivity, sequelize } from "../models/index.js";
 import { generateAssignments } from "../utils/drawUtils.js";
@@ -91,7 +91,128 @@ export const deleteEvent = async (req, res) => {
 //  PARTICIPANTES
 // ===============================
 
-/** Agrega un participante; si ya existe un usuario con ese teléfono, lo vincula. */
+/** Escapa los comodines de LIKE para que la búsqueda sea literal. */
+const escapeLike = (text) => text.replace(/[\\%_]/g, "\\$&");
+
+const CANDIDATES_LIMIT = 50;
+
+/**
+ * Usuarios registrados que aún no participan en el evento (para agregarlos
+ * sin tipear sus datos). Búsqueda por nombre, apellido, nombre completo o
+ * teléfono; la colación utf8mb4_unicode_ci ignora mayúsculas y tildes.
+ * GET /api/admin/event/:id/candidates?q=
+ */
+export const getParticipantCandidates = async (req, res) => {
+  try {
+    const ev = await Event.findByPk(req.params.id);
+    if (!ev) return res.status(404).json(EVENT_NOT_FOUND);
+
+    const existing = await Participant.findAll({ where: { eventId: ev.id }, attributes: ["userId", "phone"], raw: true });
+    const takenUserIds = existing.map((p) => p.userId).filter(Boolean);
+    const takenPhones = existing.map((p) => p.phone);
+
+    const conditions = [];
+    if (takenUserIds.length) conditions.push({ id: { [Op.notIn]: takenUserIds } });
+    if (takenPhones.length) conditions.push({ phone: { [Op.notIn]: takenPhones } });
+
+    const { q } = req.validated.query;
+    if (q) {
+      const like = `%${escapeLike(q)}%`;
+      const digits = q.replace(/\s/g, "");
+      conditions.push({
+        [Op.or]: [
+          { firstName: { [Op.like]: like } },
+          { lastName: { [Op.like]: like } },
+          sequelize.where(sequelize.fn("CONCAT", sequelize.col("firstName"), " ", sequelize.col("lastName")), { [Op.like]: like }),
+          ...(digits ? [{ phone: { [Op.like]: `%${escapeLike(digits)}%` } }] : []),
+        ],
+      });
+    }
+
+    const { rows, count } = await User.findAndCountAll({
+      where: { [Op.and]: conditions },
+      attributes: ["id", "firstName", "lastName", "phone", "role"],
+      order: [["firstName", "ASC"], ["lastName", "ASC"]],
+      limit: CANDIDATES_LIMIT,
+    });
+
+    res.json({ users: rows, total: count, limit: CANDIDATES_LIMIT });
+  } catch (err) {
+    console.error("getParticipantCandidates:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Agrega varios usuarios registrados al evento; nombre y teléfono salen de su
+ * cuenta (sin errores de tipeo). Si ya existía un participante "sin cuenta"
+ * con ese teléfono, se vincula en lugar de duplicarlo.
+ * POST /api/admin/event/:id/participants/bulk — body: { userIds: [] }
+ */
+export const addParticipantsBulk = async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    const result = await sequelize.transaction(async (transaction) => {
+      // Bloquea el evento: el sorteo no puede ocurrir a mitad del alta.
+      const ev = await Event.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!ev) return { status: 404, body: EVENT_NOT_FOUND };
+      if (ev.drawDone) {
+        return {
+          status: 409,
+          body: {
+            code: ERROR_CODES.DRAW_LOCKED,
+            message: "El sorteo de este evento ya se realizó. Reabre el sorteo para modificar participantes.",
+          },
+        };
+      }
+
+      const users = await User.findAll({ where: { id: userIds }, transaction });
+      if (users.length !== userIds.length) {
+        return { status: 404, body: { message: "Algunos usuarios ya no existen. Recarga la lista e inténtalo de nuevo." } };
+      }
+
+      const existing = await Participant.findAll({
+        where: { eventId: ev.id, [Op.or]: [{ userId: userIds }, { phone: users.map((u) => u.phone) }] },
+        transaction,
+      });
+      const byUserId = new Set(existing.map((p) => p.userId).filter(Boolean));
+      const byPhone = new Map(existing.map((p) => [p.phone, p]));
+
+      let added = 0, linked = 0, skipped = 0;
+      for (const user of users) {
+        const samePhone = byPhone.get(user.phone);
+        if (byUserId.has(user.id) || (samePhone && samePhone.userId !== null)) {
+          skipped++;
+        } else if (samePhone) {
+          await samePhone.update(
+            { userId: user.id, firstName: user.firstName, lastName: user.lastName },
+            { transaction }
+          );
+          linked++;
+        } else {
+          await Participant.create(
+            { eventId: ev.id, userId: user.id, phone: user.phone, firstName: user.firstName, lastName: user.lastName },
+            { transaction }
+          );
+          added++;
+        }
+      }
+      return { status: 201, body: { message: "Participantes agregados", added, linked, skipped } };
+    });
+
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("addParticipantsBulk:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Agrega un participante a mano (personas que aún no tienen cuenta). Si el
+ * teléfono ya pertenece a un usuario, se vincula y se usan los nombres de su
+ * cuenta (fuente de verdad), no los tipeados.
+ */
 export const addParticipant = async (req, res) => {
   try {
     const { eventId, phone, firstName, lastName, email } = req.body;
@@ -106,8 +227,8 @@ export const addParticipant = async (req, res) => {
       eventId,
       userId: user ? user.id : null,
       phone,
-      firstName,
-      lastName,
+      firstName: user ? user.firstName : firstName,
+      lastName: user ? user.lastName : lastName,
       email,
     });
 

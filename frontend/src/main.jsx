@@ -5,15 +5,18 @@ import App from "./App";
 import "./index.css";
 import { AuthProvider } from "./context/AuthContext";
 import { EventProvider } from "./context/EventContext";
+import { DialogProvider } from "./context/DialogContext";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <EventProvider>
-          <App />
-        </EventProvider>
-      </AuthProvider>
+      <DialogProvider>
+        <AuthProvider>
+          <EventProvider>
+            <App />
+          </EventProvider>
+        </AuthProvider>
+      </DialogProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

@@ -24,6 +24,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Nada de alert/confirm/prompt nativos: usar useDialog() (estilo de la app).
+      'no-alert': 'error',
     },
   },
 ])

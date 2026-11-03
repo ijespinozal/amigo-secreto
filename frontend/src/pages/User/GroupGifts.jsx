@@ -3,6 +3,7 @@ import { getErrorMessage } from "../../api";
 import Spinner from "../../components/Spinner";
 import useApiData from "../../hooks/useApiData";
 import useEvents from "../../hooks/useEvents";
+import useRequireEvent from "../../hooks/useRequireEvent";
 
 /** Normaliza para buscar sin importar mayúsculas ni tildes ("maria" encuentra "María"). */
 const normalize = (text) =>
@@ -17,8 +18,10 @@ export default function GroupGifts() {
     scope: selectedEventId,
   });
   const [query, setQuery] = useState("");
+  const redirectingNoEvent = useRequireEvent();
 
-  if (!ready || (hasEvent && !data && !error)) {
+  // Sin evento: vuelve al inicio con el aviso (mientras tanto, "cargando").
+  if (!ready || redirectingNoEvent || (hasEvent && !data && !error)) {
     return (
       <div className="flex justify-center items-center h-40">
         <Spinner size="lg" />
@@ -31,17 +34,9 @@ export default function GroupGifts() {
       <div className="alert alert-error shadow-md flex flex-wrap items-center justify-between gap-2 text-lg mt-4">
         <span>⚠️ {getErrorMessage(error, "No pudimos cargar las opciones de regalo del grupo.")}</span>
         {/* index.css estiliza todos los <button>: se limita el ancho */}
-        <button className="btn btn-sm !w-auto" onClick={eventsError ? reloadEvents : reload} disabled={loading}>
+        <button className="btn btn-sm !w-auto" onClick={eventsError ? () => reloadEvents().catch(() => {}) : reload} disabled={loading}>
           Reintentar
         </button>
-      </div>
-    );
-  }
-
-  if (!hasEvent) {
-    return (
-      <div className="alert alert-info shadow-md flex items-center gap-2 text-lg mt-4">
-        🎄 Aún no perteneces a ningún evento. Comunícate con el administrador para que te agregue.
       </div>
     );
   }

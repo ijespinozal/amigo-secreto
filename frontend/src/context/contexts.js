@@ -4,3 +4,4 @@ import { createContext } from "react";
 
 export const AuthContext = createContext(null);
 export const EventContext = createContext(null);
+export const DialogContext = createContext(null);

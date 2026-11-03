@@ -1,7 +1,12 @@
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { getErrorCode } from "../../api";
 import Card from "../../components/Card";
 import Spinner from "../../components/Spinner";
 import useApiData from "../../hooks/useApiData";
+import useDialog from "../../hooks/useDialog";
+import useRequireEvent from "../../hooks/useRequireEvent";
+import { NOT_DRAWN_DIALOG } from "../../config/messages";
 import useEvents from "../../hooks/useEvents";
 
 const NotParticipant = () => (
@@ -16,9 +21,24 @@ export default function MySecret() {
     enabled: ready && selectedEventId !== null,
     scope: selectedEventId,
   });
+  const navigate = useNavigate();
+  const dialog = useDialog();
+  const redirectingNoEvent = useRequireEvent();
 
-  // 🌟 CARGANDO
-  if (!ready || (selectedEventId !== null && !secret && !error)) {
+  // Antes del sorteo esta pantalla no aplica (p. ej. si se entra por URL):
+  // se vuelve al inicio con el aviso. El ref evita el aviso duplicado del
+  // doble montaje de StrictMode en desarrollo.
+  const notDrawnYet = secret?.revealed === false;
+  const redirectedRef = useRef(false);
+  useEffect(() => {
+    if (!notDrawnYet || redirectedRef.current) return;
+    redirectedRef.current = true;
+    navigate("/user/home", { replace: true });
+    dialog.alert(NOT_DRAWN_DIALOG);
+  }, [notDrawnYet, navigate, dialog]);
+
+  // 🌟 CARGANDO (o redirigiendo)
+  if (!ready || redirectingNoEvent || notDrawnYet || (selectedEventId !== null && !secret && !error)) {
     return (
       <div className="flex justify-center items-center h-40">
         <Spinner size="lg" />
@@ -26,8 +46,8 @@ export default function MySecret() {
     );
   }
 
-  // 🌟 NO PERTENECE A NINGÚN EVENTO
-  if ((!eventsError && selectedEventId === null) || getErrorCode(error) === "NOT_PARTICIPANT") {
+  // 🌟 YA NO PERTENECE AL EVENTO (p. ej. el admin lo quitó con la pantalla abierta)
+  if (getErrorCode(error) === "NOT_PARTICIPANT") {
     return <NotParticipant />;
   }
 
@@ -36,18 +56,9 @@ export default function MySecret() {
     return (
       <div className="alert alert-error shadow-md flex flex-wrap items-center justify-between gap-2 text-lg mt-4">
         <span>⚠️ No pudimos cargar tu amigo secreto. Revisa tu conexión e inténtalo de nuevo.</span>
-        <button className="btn btn-sm" onClick={eventsError ? reloadEvents : reload} disabled={loading}>
+        <button className="btn btn-sm" onClick={eventsError ? () => reloadEvents().catch(() => {}) : reload} disabled={loading}>
           {loading ? "Reintentando..." : "Reintentar"}
         </button>
-      </div>
-    );
-  }
-
-  // 🌟 AÚN NO HAY SORTEO
-  if (!secret.revealed) {
-    return (
-      <div className="alert alert-warning shadow-md flex items-center gap-2 text-lg mt-4">
-        🎅 A la espera del sorteo... Te avisaremos aquí cuando tu amigo secreto esté listo.
       </div>
     );
   }

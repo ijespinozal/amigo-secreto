@@ -6,6 +6,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import ScheduleModal from "../../components/ScheduleModal";
 import Spinner from "../../components/Spinner";
 import useApiData from "../../hooks/useApiData";
+import useDialog from "../../hooks/useDialog";
 import { formatCalendarDate } from "../../utils/date";
 import { formatScheduleTime, referenceLinkLabel } from "../../utils/schedule";
 
@@ -14,6 +15,7 @@ const smallButton = "!w-9 !h-9 !p-0 rounded-lg text-base disabled:opacity-30 dis
 
 export default function SchedulePage() {
   const { id } = useParams();
+  const dialog = useDialog();
   const { data, error, loading, reload, setData } = useApiData(`/admin/event/${id}/schedule`);
   const event = data?.event;
   const activities = data?.activities ?? [];
@@ -41,7 +43,7 @@ export default function SchedulePage() {
       }
       setEditing(undefined);
     } catch (err) {
-      alert(getErrorMessage(err, "No se pudo guardar la actividad"));
+      dialog.alert({ type: "error", title: "No se pudo guardar la actividad", message: getErrorMessage(err) });
     } finally {
       setSaving(false);
     }
@@ -55,7 +57,8 @@ export default function SchedulePage() {
       if (res.data.unpublished) setPublished(false);
       setToDelete(null);
     } catch (err) {
-      alert(getErrorMessage(err, "No se pudo eliminar la actividad"));
+      setToDelete(null);
+      dialog.alert({ type: "error", title: "No se pudo eliminar la actividad", message: getErrorMessage(err) });
     } finally {
       setBusy(false);
     }
@@ -71,7 +74,7 @@ export default function SchedulePage() {
       const res = await api.put(`/admin/event/${id}/schedule/order`, { activityIds: ids });
       setActivities(res.data.activities);
     } catch (err) {
-      alert(getErrorMessage(err, "No se pudo cambiar el orden"));
+      dialog.alert({ type: "error", title: "No se pudo cambiar el orden", message: getErrorMessage(err) });
       reload();
     } finally {
       setBusy(false);
@@ -84,7 +87,7 @@ export default function SchedulePage() {
       const res = await api.put(`/admin/event/${id}/schedule/visibility`, { published: !event.schedulePublished });
       setPublished(res.data.schedulePublished);
     } catch (err) {
-      alert(getErrorMessage(err, "No se pudo cambiar la visibilidad"));
+      dialog.alert({ type: "error", title: "No se pudo cambiar la visibilidad", message: getErrorMessage(err) });
     } finally {
       setBusy(false);
     }

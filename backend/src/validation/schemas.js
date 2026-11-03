@@ -112,6 +112,20 @@ export const participantSchema = z.object({
 
 export const drawSchema = z.object({ eventId: id("El evento") });
 
+export const MAX_BULK_PARTICIPANTS = 200;
+
+export const candidatesQuerySchema = z.object({
+  q: z.string().trim().max(100, "La búsqueda admite máximo 100 caracteres").optional().default(""),
+});
+
+export const bulkParticipantsSchema = z.object({
+  userIds: z
+    .array(id("Cada usuario"), { required_error: "Selecciona al menos un usuario" })
+    .min(1, "Selecciona al menos un usuario")
+    .max(MAX_BULK_PARTICIPANTS, `Máximo ${MAX_BULK_PARTICIPANTS} usuarios por vez`)
+    .refine((ids) => new Set(ids).size === ids.length, "La lista tiene usuarios repetidos"),
+});
+
 export const resetPasswordSchema = z.object({ userId: id("El usuario") });
 
 // ---- Cronograma ----

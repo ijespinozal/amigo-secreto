@@ -6,6 +6,8 @@ import {
   updateEvent,
   deleteEvent,
   addParticipant,
+  addParticipantsBulk,
+  getParticipantCandidates,
   getParticipants,
   deleteParticipant,
   runDraw,
@@ -26,6 +28,8 @@ import { protect, onlyAdmin } from "../middlewares/authMiddleware.js";
 import { validate } from "../middlewares/validate.js";
 import {
   activitySchema,
+  bulkParticipantsSchema,
+  candidatesQuerySchema,
   drawSchema,
   eventIdParam,
   eventSchema,
@@ -49,6 +53,8 @@ router.post("/event/:id/reset-draw", validate(idParam, "params"), resetDraw);
 router.get("/event/:eventId/participants", validate(eventIdParam, "params"), getParticipants);
 
 router.post("/participant", validate(participantSchema), addParticipant);
+router.get("/event/:id/candidates", validate(idParam, "params"), validate(candidatesQuerySchema, "query"), getParticipantCandidates);
+router.post("/event/:id/participants/bulk", validate(idParam, "params"), validate(bulkParticipantsSchema), addParticipantsBulk);
 router.delete("/participant/:id", validate(idParam, "params"), deleteParticipant);
 
 router.post("/draw", validate(drawSchema), runDraw);

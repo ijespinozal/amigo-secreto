@@ -3,6 +3,8 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import PrivateRoute from "./routes/PrivateRoute";
 import EventSelector from "./components/EventSelector";
+import FestiveBackground from "./components/layout/FestiveBackground";
+import FloatingControls from "./components/layout/FloatingControls";
 
 /* Auth */
 import Login from "./pages/Login";
@@ -22,10 +24,12 @@ import GroupGifts from "./pages/User/GroupGifts";
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
+      <FestiveBackground />
       <Header />
 
       {/* MAIN crece automáticamente hasta empujar el footer al final */}
-      <main className="flex-grow container mx-auto p-4">
+      {/* Sin z-index propio: así los modales (fixed, z-50) quedan por encima del header. */}
+      <main className="relative flex-grow w-full max-w-[1100px] mx-auto px-4 sm:px-8 py-6 sm:py-10">
         {/* Solo visible para usuarios que participan en más de un evento */}
         <EventSelector />
 
@@ -78,6 +82,7 @@ export default function App() {
       </main>
 
       <Footer />
+      <FloatingControls />
     </div>
   );
 }
