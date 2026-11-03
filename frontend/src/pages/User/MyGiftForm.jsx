@@ -5,10 +5,11 @@ import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
 import EditGiftModal from "../../components/EditGiftModal";
 import GiftForm from "../../components/GiftForm";
-import Spinner from "../../components/Spinner";
 import GiftItem from "../../components/gifts/GiftItem";
+import PageHeader from "../../components/layout/PageHeader";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
+import { EmptyState, PageError, PageLoading } from "../../components/ui/PageStatus";
 import { MAX_GIFTS_PER_PARTICIPANT } from "../../config/rules";
 import useApiData from "../../hooks/useApiData";
 import useDialog from "../../hooks/useDialog";
@@ -74,20 +75,14 @@ export default function MyGiftForm() {
   };
 
   // Sin evento: vuelve al inicio con el aviso (mientras tanto, "cargando").
-  if (!ready || redirectingNoEvent) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  if (!ready || redirectingNoEvent) return <PageLoading />;
 
   if (eventsError) {
     return (
-      <Card className="max-w-xl mx-auto text-center">
-        <p className="font-semibold text-red-700">⚠️ No pudimos cargar tus eventos. Revisa tu conexión e inténtalo de nuevo.</p>
-        <Button variant="secondary" size="sm" className="mt-4" onClick={() => reloadEvents().catch(() => {})}>Reintentar</Button>
-      </Card>
+      <PageError
+        message="No pudimos cargar tus eventos. Revisa tu conexión e inténtalo de nuevo."
+        onRetry={() => reloadEvents().catch(() => {})}
+      />
     );
   }
 
@@ -95,21 +90,13 @@ export default function MyGiftForm() {
     <div className="flex flex-col gap-8 animate-fade-in">
       {toast && <AlertMessage type="success" message={toast} onClose={() => setToast(null)} />}
 
-      {/* ENCABEZADO */}
-      <section>
-        <Button to="/user/home" variant="ghost" size="sm" className="text-on-page hover:bg-white/10 -ml-3">
-          ← Volver a Mi espacio
-        </Button>
-        <h1 className="font-festive font-bold text-3xl sm:text-4xl text-on-page drop-shadow-md tracking-tight mt-1">
-          Mis opciones de regalo <span aria-hidden="true">🎁</span>
-        </h1>
-        <p className="font-semibold text-on-page/90 mt-1">
-          {selectedEvent?.title} · Cuéntale a tu amigo secreto qué te gustaría recibir.
-        </p>
-        <div className="mt-3">
-          <GiftProgress count={gifts.length} />
-        </div>
-      </section>
+      <PageHeader
+        title="Mis opciones de regalo"
+        emoji="🎁"
+        subtitle={`${selectedEvent?.title ?? ""} · Cuéntale a tu amigo secreto qué te gustaría recibir.`}
+      >
+        <GiftProgress count={gifts.length} />
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ALTA */}
@@ -136,13 +123,9 @@ export default function MyGiftForm() {
               <Button variant="secondary" size="sm" onClick={reload}>Reintentar</Button>
             </div>
           ) : gifts.length === 0 ? (
-            <div className="text-center py-6">
-              <div aria-hidden="true" className="text-5xl mb-2">🎄</div>
-              <p className="font-festive font-bold text-lg text-brand-strong">Aún no agregaste opciones</p>
-              <p className="text-sm font-semibold text-ink-soft mt-1">
-                Registra hasta {MAX_GIFTS_PER_PARTICIPANT} ideas para que tu amigo secreto acierte.
-              </p>
-            </div>
+            <EmptyState icon="🎄" title="Aún no agregaste opciones">
+              Registra hasta {MAX_GIFTS_PER_PARTICIPANT} ideas para que tu amigo secreto acierte.
+            </EmptyState>
           ) : (
             <ul className="flex flex-col gap-3">
               {gifts.map((g, index) => (

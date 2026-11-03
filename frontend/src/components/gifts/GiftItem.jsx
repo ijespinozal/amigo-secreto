@@ -1,7 +1,10 @@
 import Badge from "../ui/Badge";
 import IconButton from "../ui/IconButton";
 
-/** Una opción de regalo registrada, con acciones de editar y eliminar. */
+/**
+ * Una opción de regalo registrada. Sin `onEdit`/`onDelete` es de solo lectura
+ * (p. ej. las opciones del amigo secreto o del grupo).
+ */
 export default function GiftItem({ gift, position, onEdit, onDelete }) {
   return (
     <li
@@ -33,10 +36,12 @@ export default function GiftItem({ gift, position, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-1.5">
-        <IconButton label={`Editar "${gift.title}"`} onClick={onEdit}>✏️</IconButton>
-        <IconButton label={`Eliminar "${gift.title}"`} tone="danger" onClick={onDelete}>🗑️</IconButton>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="flex flex-col sm:flex-row gap-1.5">
+          {onEdit && <IconButton label={`Editar "${gift.title}"`} onClick={onEdit}>✏️</IconButton>}
+          {onDelete && <IconButton label={`Eliminar "${gift.title}"`} tone="danger" onClick={onDelete}>🗑️</IconButton>}
+        </div>
+      )}
     </li>
   );
 }

@@ -12,7 +12,7 @@ const colorOf = (seed) => {
 
 /** Avatar con iniciales (la app no guarda fotos de perfil). */
 export default function Avatar({ firstName, lastName, size = "md", className = "" }) {
-  const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-lg" };
+  const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-14 h-14 text-lg", xl: "w-20 h-20 text-2xl" };
   return (
     <span
       aria-hidden="true"

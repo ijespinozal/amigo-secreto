@@ -2,8 +2,10 @@
 // sobre un número fijo de copos (SNOWFLAKE_COUNT). Respeta "reducir
 // movimiento" (ver index.css). La guirnalda del tema verde está en el Header.
 
-// 👉 CANTIDAD DE NIEVE: sube o baja este número (recomendado entre 20 y 50).
+// 👉 CANTIDAD DE NIEVE en computadora y en celular (pantallas < 640px).
+// En celular se usan menos copos para cuidar el rendimiento y la batería.
 const SNOWFLAKE_COUNT = 80;
+const SNOWFLAKE_COUNT_MOBILE = 35;
 
 const SIZES = ["text-[10px]", "text-xs", "text-sm", "text-base", "text-lg"];
 const CHARS = ["❄", "❅", "•"];
@@ -30,7 +32,8 @@ export default function FestiveBackground() {
       {SNOWFLAKES.map((flake, i) => (
         <span
           key={i}
-          className={`snowflake ${flake.size}`}
+          // display:none también detiene la animación: en celular no cuesta nada.
+          className={`snowflake ${flake.size} ${i >= SNOWFLAKE_COUNT_MOBILE ? "max-sm:hidden" : ""}`}
           style={{ left: flake.left, animationDuration: flake.duration, animationDelay: flake.delay }}
         >
           {flake.char}

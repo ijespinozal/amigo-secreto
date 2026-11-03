@@ -5,6 +5,8 @@ const TONES = {
   blue: "bg-blue-100 text-blue-800",
   gray: "bg-stone-200/70 text-stone-700",
   brand: "bg-brand-soft text-brand-strong",
+  // Opaca: para usar directamente sobre el fondo oscuro de la página.
+  cream: "bg-cream-100 text-amber-900 shadow-sm",
 };
 
 /** Etiqueta en forma de píldora. */
