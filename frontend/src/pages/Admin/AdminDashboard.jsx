@@ -5,18 +5,19 @@ import ConfirmModal from "../../components/ConfirmModal";
 import EventFormModal from "../../components/EventFormModal";
 import TemporaryPasswordModal from "../../components/TemporaryPasswordModal";
 import EventCard from "../../components/admin/EventCard";
+import EventFields from "../../components/admin/EventFields";
 import StatCard from "../../components/admin/StatCard";
 import UsersList from "../../components/admin/UsersList";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
-import TextField from "../../components/ui/TextField";
 import useApiData from "../../hooks/useApiData";
 import useAuth from "../../hooks/useAuth";
 import useDialog from "../../hooks/useDialog";
 import { todayISO } from "../../utils/date";
+import { EMPTY_EVENT, validateEvent } from "../../utils/event";
+import { omit } from "../../utils/object";
 
 const PAGE_SIZE = 6;
-const EMPTY_EVENT = { title: "", description: "", date_event: "" };
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -63,13 +64,15 @@ export default function AdminDashboard() {
   };
 
   // ---------- Eventos ----------
-  const updateNewEvent = (field) => (e) => setNewEvent((prev) => ({ ...prev, [field]: e.target.value }));
+  // Al editar un campo se borra su error: el mensaje no queda desactualizado.
+  const changeNewEvent = (next, name) => {
+    setNewEvent(next);
+    setNewEventErrors((prev) => omit(prev, name));
+  };
 
   const createEvent = async (e) => {
     e.preventDefault();
-    const errors = {};
-    if (!newEvent.title.trim()) errors.title = "El título es obligatorio.";
-    if (!newEvent.date_event) errors.date_event = "La fecha es obligatoria.";
+    const errors = validateEvent(newEvent);
     setNewEventErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -185,32 +188,9 @@ export default function AdminDashboard() {
 
       {/* CREAR EVENTO */}
       <Card title={<><span aria-hidden="true">🎄</span> Crear nuevo evento</>}>
-        <form onSubmit={createEvent} noValidate className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <TextField
-            label="Título del evento"
-            placeholder="Ej: Navidad 2026"
-            value={newEvent.title}
-            onChange={updateNewEvent("title")}
-            maxLength={255}
-            error={newEventErrors.title}
-          />
-          <TextField
-            label="Fecha del evento"
-            type="date"
-            min={todayISO()}
-            value={newEvent.date_event}
-            onChange={updateNewEvent("date_event")}
-            error={newEventErrors.date_event}
-          />
-          <TextField
-            className="sm:col-span-2"
-            label="Descripción"
-            placeholder="Opcional: lugar, presupuesto sugerido, detalles..."
-            value={newEvent.description}
-            onChange={updateNewEvent("description")}
-            maxLength={2000}
-          />
-          <div className="sm:col-span-2 flex justify-end">
+        <form onSubmit={createEvent} noValidate className="flex flex-col gap-4">
+          <EventFields value={newEvent} errors={newEventErrors} onChange={changeNewEvent} minDate={todayISO()} />
+          <div className="flex justify-end">
             <Button type="submit" disabled={creating} className="w-full sm:w-auto">
               {creating ? "Creando..." : <>Crear evento <span aria-hidden="true">🎁</span></>}
             </Button>

@@ -98,10 +98,20 @@ export const changePasswordSchema = z
   });
 
 // ---- Admin ----
+// "HH:MM" opcional (input type="time" vacío = sin hora).
+const optionalTime = z
+  .string({ invalid_type_error: "La hora debe ser texto" })
+  .trim()
+  .nullish()
+  .transform((value) => value || null)
+  .refine((value) => value === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(value), "La hora debe tener el formato HH:MM");
+
 export const eventSchema = z.object({
   title: requiredText("El título", 255),
   description: optionalText("La descripción", 2000),
   date_event: calendarDate,
+  startTime: optionalTime,
+  location: optionalText("El lugar", 255),
 });
 
 export const participantSchema = z.object({

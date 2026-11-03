@@ -20,6 +20,8 @@ const serializeEvent = (event) => ({
   title: event.title,
   description: event.description,
   date_event: event.date_event,
+  startTime: event.startTime?.slice(0, 5) ?? null, // "HH:MM:SS" -> "HH:MM"
+  location: event.location ?? null,
   drawDone: event.drawDone,
   drawDate: event.drawDate,
   createdAt: event.createdAt,
@@ -34,8 +36,8 @@ const serializeEvent = (event) => ({
 // ===============================
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, date_event } = req.body;
-    const ev = await Event.create({ title, description, date_event, createdBy: req.user.id });
+    const { title, description, date_event, startTime, location } = req.body;
+    const ev = await Event.create({ title, description, date_event, startTime, location, createdBy: req.user.id });
     res.status(201).json({ message: "Event created", event: { ...serializeEvent(ev), participantsCount: 0, activitiesCount: 0 } });
   } catch (err) {
     console.error("createEvent:", err);
@@ -65,8 +67,8 @@ export const updateEvent = async (req, res) => {
     const ev = await Event.findByPk(req.params.id, { include: [{ model: Participant, attributes: ["id"] }] });
     if (!ev) return res.status(404).json(EVENT_NOT_FOUND);
 
-    const { title, description, date_event } = req.body;
-    await ev.update({ title, description, date_event });
+    const { title, description, date_event, startTime, location } = req.body;
+    await ev.update({ title, description, date_event, startTime, location });
 
     res.json({ message: "Evento actualizado", event: serializeEvent(ev) });
   } catch (err) {

@@ -1,5 +1,6 @@
 import useCountdown from "../../hooks/useCountdown";
 import { daysUntil, formatCalendarDate, parseCalendarDate } from "../../utils/date";
+import { eventStart, formatEventTime, mapsUrl } from "../../utils/event";
 import Badge from "../ui/Badge";
 
 const UNITS = [
@@ -17,7 +18,7 @@ const formatEventDate = (value) => {
   return formatCalendarDate(value, options);
 };
 
-function Hero({ badge, title, subtitle, children }) {
+function Hero({ badge, title, subtitle, details, children }) {
   return (
     <section className="relative overflow-hidden bg-cream-100 rounded-[var(--radius-panel)] p-6 sm:p-9 shadow-[var(--shadow-cozy)] border-2 border-gold-400/50">
       <div aria-hidden="true" className="absolute -right-4 -top-4 text-6xl opacity-30 select-none">❄️</div>
@@ -28,6 +29,7 @@ function Hero({ badge, title, subtitle, children }) {
           <h2 className="font-festive font-bold text-2xl sm:text-3xl md:text-4xl text-brand-strong tracking-tight leading-snug">
             {title}
           </h2>
+          {details}
           {subtitle && <p className="mt-2 font-semibold text-ink-soft">{subtitle}</p>}
         </div>
         {children}
@@ -36,9 +38,31 @@ function Hero({ badge, title, subtitle, children }) {
   );
 }
 
+/** Hora y lugar del evento (si están definidos), con enlace al mapa. */
+function WhenWhere({ event }) {
+  const time = formatEventTime(event);
+  if (!time && !event.location) return null;
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+      {time && <Badge tone="green" className="text-sm">🕖 {time}</Badge>}
+      {event.location && (
+        <a
+          href={mapsUrl(event.location)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 max-w-full px-3 py-1 rounded-full bg-white border border-gold-400/60 font-festive font-bold text-sm text-brand-strong hover:bg-gold-400/20 break-words"
+          title="Ver en Google Maps"
+        >
+          📍 {event.location} <span className="text-xs text-pine-700 underline underline-offset-2 whitespace-nowrap">Ver mapa</span>
+        </a>
+      )}
+    </div>
+  );
+}
+
 /** Cuenta regresiva del evento seleccionado, con sus estados: sin evento, sin fecha, próximo, hoy y pasado. */
 export default function CountdownHero({ event }) {
-  const countdown = useCountdown(event?.date_event);
+  const countdown = useCountdown(eventStart(event));
 
   if (!event) {
     return (
@@ -56,19 +80,22 @@ export default function CountdownHero({ event }) {
 
   const date = formatEventDate(event.date_event);
   const days = daysUntil(event.date_event);
+  const details = <WhenWhere event={event} />;
 
   if (days < 0) {
     return <Hero badge="🎁 Evento finalizado" title={`Nuestra reunión navideña fue el ${date}`} subtitle="¡Gracias por participar! 🎄✨" />;
   }
-  if (days === 0) {
-    return <Hero badge="🎉 ¡Es hoy!" title="¡Hoy es nuestra reunión navideña!" subtitle="Que disfrutes el intercambio 🎁✨" />;
+  // Es hoy y ya empezó (o no tiene hora): no tiene sentido una cuenta en cero.
+  if (days === 0 && (countdown.reached || !event.startTime)) {
+    return <Hero badge="🎉 ¡Es hoy!" title="¡Hoy es nuestra reunión navideña!" details={details} subtitle="Que disfrutes el intercambio 🎁✨" />;
   }
 
   return (
     <Hero
-      badge="⭐ Cuenta regresiva"
-      title={`Nuestra reunión navideña es el ${date}`}
-      subtitle="Ve agregando tus opciones de regalo 🏃"
+      badge={days === 0 ? "🎉 ¡Es hoy!" : "⭐ Cuenta regresiva"}
+      title={days === 0 ? "¡Hoy es nuestra reunión navideña!" : `Nuestra reunión navideña es el ${date}`}
+      details={details}
+      subtitle={days === 0 ? "Falta muy poco para empezar 🎁" : "Ve agregando tus opciones de regalo 🏃"}
     >
       <div
         role="timer"

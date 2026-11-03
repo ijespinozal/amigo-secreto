@@ -14,18 +14,21 @@ import useDialog from "../../hooks/useDialog";
 import useEvents from "../../hooks/useEvents";
 import useRequireEvent from "../../hooks/useRequireEvent";
 import { daysUntil, formatCalendarDate } from "../../utils/date";
+import { formatEventTime, mapsUrl } from "../../utils/event";
 
 /** "987654321" -> "987 654 321" */
 const formatPhone = (phone = "") => phone.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
 
-/** Texto corto de cuánto falta para el intercambio. */
-const exchangeLabel = (dateEvent) => {
-  const days = daysUntil(dateEvent);
+/** Texto corto de cuándo es el intercambio (con la hora, si está definida). */
+const exchangeLabel = (event) => {
+  const days = daysUntil(event?.date_event);
   if (days === null) return null;
-  const date = formatCalendarDate(dateEvent, { day: "numeric", month: "long" });
-  if (days > 1) return `Intercambio el ${date} · faltan ${days} días`;
-  if (days === 1) return `Intercambio mañana, ${date}`;
-  if (days === 0) return "¡El intercambio es hoy!";
+  const date = formatCalendarDate(event.date_event, { day: "numeric", month: "long" });
+  const time = formatEventTime(event);
+  const at = time ? ` a las ${time}` : "";
+  if (days > 1) return `Intercambio el ${date}${at} · faltan ${days} días`;
+  if (days === 1) return `Intercambio mañana${at}`;
+  if (days === 0) return `¡El intercambio es hoy${at}!`;
   return `El intercambio fue el ${date}`;
 };
 
@@ -82,7 +85,7 @@ export default function MySecret() {
 
   const { friend, gifts, event } = secret;
   const fullName = `${friend.firstName} ${friend.lastName ?? ""}`.trim();
-  const when = exchangeLabel(event?.date_event);
+  const when = exchangeLabel(event);
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in">
@@ -109,8 +112,18 @@ export default function MySecret() {
 
           {when && (
             <div className="mt-4">
-              <Badge tone="green">🗓️ {when}</Badge>
+              <Badge tone="green" wrap>🗓️ {when}</Badge>
             </div>
+          )}
+          {event?.location && (
+            <a
+              href={mapsUrl(event.location)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-sm font-bold text-pine-700 hover:text-pine-800 underline underline-offset-2 break-words"
+            >
+              📍 {event.location}
+            </a>
           )}
 
           <p className="mt-5 text-sm font-bold text-brand bg-brand-soft rounded-xl px-4 py-3">

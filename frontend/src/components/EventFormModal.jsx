@@ -1,7 +1,9 @@
 import { useId, useState } from "react";
+import { omit } from "../utils/object";
+import { toEventForm, validateEvent } from "../utils/event";
+import EventFields from "./admin/EventFields";
 import Button from "./ui/Button";
 import Modal from "./ui/Modal";
-import TextField from "./ui/TextField";
 
 /**
  * Edición de un evento. El padre debe montarlo con `key={event.id}` para que
@@ -9,44 +11,42 @@ import TextField from "./ui/TextField";
  */
 export default function EventFormModal({ event, saving = false, onSave, onClose }) {
   const titleId = useId();
-  const [form, setForm] = useState({
-    title: event.title ?? "",
-    description: event.description ?? "",
-    date_event: event.date_event ?? "",
-  });
+  const [form, setForm] = useState(() => toEventForm(event));
   const [errors, setErrors] = useState({});
 
-  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  // Al editar un campo se borra su error: el mensaje no queda desactualizado.
+  const change = (next, name) => {
+    setForm(next);
+    setErrors((prev) => omit(prev, name));
+  };
 
   const submit = (e) => {
     e.preventDefault();
-    const next = {};
-    if (!form.title.trim()) next.title = "El título es obligatorio.";
-    if (!form.date_event) next.date_event = "La fecha es obligatoria.";
+    const next = validateEvent(form);
     setErrors(next);
     if (Object.keys(next).length === 0) onSave(form);
   };
 
   return (
-    <Modal open onClose={saving ? undefined : onClose} labelledBy={titleId} className="max-w-md p-6 sm:p-7">
-      <form onSubmit={submit} noValidate className="space-y-4">
+    <Modal open onClose={saving ? undefined : onClose} labelledBy={titleId} className="max-w-lg p-6 sm:p-7">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-5">
         <div className="text-center">
           <div aria-hidden="true" className="text-4xl mb-1">✏️</div>
           <h2 id={titleId} className="font-festive font-bold text-2xl text-brand-strong">Editar evento</h2>
         </div>
 
-        <TextField label="Título del evento" value={form.title} onChange={update("title")} maxLength={255} error={errors.title} />
-        <TextField label="Descripción" value={form.description} onChange={update("description")} maxLength={2000} placeholder="Opcional" />
-        <TextField label="Fecha del evento" type="date" value={form.date_event} onChange={update("date_event")} error={errors.date_event} />
+        <fieldset disabled={saving} className="contents">
+          <EventFields value={form} errors={errors} onChange={change} />
 
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" block disabled={saving} className="rounded-xl py-3">
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </Button>
-          <Button variant="neutral" block disabled={saving} onClick={onClose} className="rounded-xl py-3">
-            Cancelar
-          </Button>
-        </div>
+          <div className="flex gap-3 pt-1">
+            <Button type="submit" block className="rounded-xl py-3">
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </Button>
+            <Button variant="neutral" block onClick={onClose} className="rounded-xl py-3">
+              Cancelar
+            </Button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );

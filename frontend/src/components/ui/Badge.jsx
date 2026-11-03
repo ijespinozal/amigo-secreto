@@ -9,11 +9,15 @@ const TONES = {
   cream: "bg-cream-100 text-amber-900 shadow-sm",
 };
 
-/** Etiqueta en forma de píldora. */
-export default function Badge({ tone = "gold", className = "", children }) {
+/**
+ * Etiqueta en forma de píldora.
+ * @param {boolean} [wrap] permite varias líneas (textos largos en celular)
+ */
+export default function Badge({ tone = "gold", wrap = false, className = "", children }) {
+  const layout = wrap ? "whitespace-normal text-center rounded-2xl" : "whitespace-nowrap rounded-full";
   return (
     <span
-      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-festive font-bold text-xs whitespace-nowrap ${TONES[tone]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1 px-3 py-1 font-festive font-bold text-xs ${layout} ${TONES[tone]} ${className}`}
     >
       {children}
     </span>

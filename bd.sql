@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS events (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   date_event DATE NULL,
+  startTime TIME NULL,
+  location VARCHAR(255) NULL,
   createdBy INT NULL,
   drawDone TINYINT(1) NOT NULL DEFAULT 0,
   drawDate DATETIME NULL,

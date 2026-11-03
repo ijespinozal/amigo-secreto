@@ -15,6 +15,8 @@ const serializeEvent = (event) => ({
   title: event.title,
   description: event.description,
   date_event: event.date_event,
+  startTime: event.startTime?.slice(0, 5) ?? null, // "HH:MM:SS" -> "HH:MM"
+  location: event.location ?? null,
   drawDone: event.drawDone,
 });
 
