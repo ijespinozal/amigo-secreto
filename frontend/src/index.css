@@ -96,26 +96,10 @@
     color: var(--color-brand-strong);
   }
 
-  /* ---- LEGADO (se elimina al terminar la fase 2 del rediseño) ----
-     En @layer base para que las utilidades de Tailwind tengan prioridad. */
-  button {
-    width: 100%;
-    padding: 12px;
-    background: #0a9400;
-    border: none;
-    color: white;
-    border-radius: 10px;
-    font-size: 16px;
+  /* Tailwind v4 deja el cursor por defecto en los botones; la app usa la mano. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
     cursor: pointer;
-    transition: 0.3s;
-  }
-  button:hover {
-    background: #0cc000;
-  }
-  input {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
   }
 }
 
@@ -160,8 +144,3 @@
   .snowflake, .garland-light { animation: none; display: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
-
-/* ============== Animaciones heredadas (pantallas de la fase 2) ============== */
-.animate-fadeIn { animation: fade-in 0.35s ease-out; }
-.animate-fadeInUp { animation: fade-in-up 0.35s ease-out; }
-.animate-fade-in { animation: fade-in 0.35s ease-out; }

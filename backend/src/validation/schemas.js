@@ -82,6 +82,11 @@ export const loginSchema = z.object({
   password: z.string({ required_error: "La contraseña es obligatoria" }).min(1, "La contraseña es obligatoria"),
 });
 
+export const updateProfileSchema = z.object({
+  firstName: requiredText("El nombre", 100),
+  lastName: requiredText("El apellido", 100),
+});
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string({ required_error: "La contraseña actual es obligatoria" }).min(1, "La contraseña actual es obligatoria"),

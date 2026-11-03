@@ -1,15 +1,7 @@
 // Reglas de una opción de regalo (las mismas que valida el backend).
+import { isHttpUrl } from "./url";
 
 export const EMPTY_GIFT = Object.freeze({ title: "", note: "", donation: "", link: "" });
-
-const isHttpUrl = (value) => {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-};
 
 /** Errores de validación por campo ({} si es válido). */
 export const validateGift = (gift) => {

@@ -4,12 +4,12 @@ import api, { getErrorMessage } from "../../api";
 import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
 import ParticipantList from "../../components/ParticipantList";
-import Spinner from "../../components/Spinner";
 import ManualParticipantForm from "../../components/admin/ManualParticipantForm";
 import StatCard from "../../components/admin/StatCard";
 import UserPicker from "../../components/admin/UserPicker";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
+import { PageLoading } from "../../components/ui/PageStatus";
 import useApiData from "../../hooks/useApiData";
 import useDialog from "../../hooks/useDialog";
 import { formatCalendarDate } from "../../utils/date";
@@ -92,13 +92,7 @@ export default function ParticipantsPage() {
     );
   }
 
-  if (loading && !data) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  if (loading && !data) return <PageLoading />;
 
   const registeredCount = participants.filter((p) => p.registered).length;
   const withGiftsCount = participants.filter((p) => p.giftsCount > 0).length;

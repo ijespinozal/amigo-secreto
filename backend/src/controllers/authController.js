@@ -6,14 +6,7 @@ import { UniqueConstraintError } from "sequelize";
 import env from "../config/env.js";
 import { ERROR_CODES } from "../config/constants.js";
 import { User, Participant, sequelize } from "../models/index.js";
-
-const toSafeUser = (user) => ({
-  id: user.id,
-  phone: user.phone,
-  firstName: user.firstName,
-  lastName: user.lastName,
-  role: user.role,
-});
+import { toSafeUser } from "../utils/users.js";
 
 export const register = async (req, res) => {
   try {

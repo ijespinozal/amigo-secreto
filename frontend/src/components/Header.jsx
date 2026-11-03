@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import ChangePasswordModal from "./ChangePasswordModal";
+import ProfileModal from "./ProfileModal";
 import Avatar from "./ui/Avatar";
 import Button from "./ui/Button";
 
@@ -29,7 +30,7 @@ function Garland() {
 const menuItem =
   "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-left text-[#4A261D] bg-transparent rounded-none hover:bg-gold-400/20 transition-colors";
 
-function UserMenu({ user, onChangePassword, onLogout }) {
+function UserMenu({ user, onEditProfile, onChangePassword, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isAdmin = user.role === "admin";
@@ -83,11 +84,15 @@ function UserMenu({ user, onChangePassword, onLogout }) {
               <Link to="/user/group-gifts" onClick={close} className={menuItem}>
                 <span aria-hidden="true">🎁</span> Regalos del grupo
               </Link>
-              <button type="button" onClick={() => { close(); onChangePassword(); }} className={menuItem}>
-                <span aria-hidden="true">🔑</span> Cambiar contraseña
-              </button>
             </>
           )}
+          {/* Cuenta: disponible para participantes y para el admin */}
+          <button type="button" onClick={() => { close(); onEditProfile(); }} className={menuItem}>
+            <span aria-hidden="true">✏️</span> Mis datos
+          </button>
+          <button type="button" onClick={() => { close(); onChangePassword(); }} className={menuItem}>
+            <span aria-hidden="true">🔑</span> Cambiar contraseña
+          </button>
           <div className="my-1.5 border-t border-amber-900/10" />
           <button type="button" onClick={() => { close(); onLogout(); }} className={`${menuItem} !text-red-700 hover:!bg-red-50`}>
             <span aria-hidden="true">🚪</span> Salir
@@ -102,6 +107,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
   const [openPasswordModal, setOpenPasswordModal] = useState(false);
+  const [openProfileModal, setOpenProfileModal] = useState(false);
 
   const home = user ? (user.role === "admin" ? "/admin/dashboard" : "/user/home") : "/";
 
@@ -110,6 +116,7 @@ export default function Header() {
       <Garland />
 
       <ChangePasswordModal open={openPasswordModal} onClose={() => setOpenPasswordModal(false)} />
+      <ProfileModal open={openProfileModal} onClose={() => setOpenProfileModal(false)} />
 
       <div className="max-w-[1100px] mx-auto px-4 sm:px-8 h-[72px] flex items-center justify-between gap-3">
         <Link to={home} className="flex items-center gap-2 group active:scale-95 transition-transform">
@@ -120,7 +127,12 @@ export default function Header() {
         </Link>
 
         {user ? (
-          <UserMenu user={user} onChangePassword={() => setOpenPasswordModal(true)} onLogout={() => logout()} />
+          <UserMenu
+            user={user}
+            onEditProfile={() => setOpenProfileModal(true)}
+            onChangePassword={() => setOpenPasswordModal(true)}
+            onLogout={() => logout()}
+          />
         ) : (
           // Solo el acceso a la otra pantalla: en el login no tiene sentido "Iniciar sesión".
           <nav>

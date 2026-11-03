@@ -1,5 +1,12 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { isHttpUrl } from "../utils/url";
+import { omit } from "../utils/object";
+import Button from "./ui/Button";
+import IconButton from "./ui/IconButton";
+import Modal from "./ui/Modal";
+import TextField from "./ui/TextField";
 
+// Límites del backend (validation/schemas.js > activitySchema).
 const MAX_PRIZES = 20;
 const ICON_SUGGESTIONS = ["🎄", "🎁", "🎅", "🥤", "🏗️", "🎱", "🎾", "😂", "🌑", "🎤", "💃", "🍽️", "🎉", "🤗"];
 
@@ -13,20 +20,48 @@ const EMPTY_ACTIVITY = {
   prizes: [],
 };
 
+/** Valores del formulario a partir de una actividad guardada (null -> ""). */
+const toForm = (activity) => {
+  const source = { ...EMPTY_ACTIVITY, ...(activity ?? {}) };
+  return Object.fromEntries(Object.entries(source).map(([k, v]) => [k, v ?? (k === "prizes" ? [] : "")]));
+};
+
+/** Errores por campo ({} si es válido). */
+const validate = (form) => {
+  const errors = {};
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.startTime)) errors.startTime = "Indica la hora de la actividad.";
+  if (!form.title.trim()) errors.title = "El título es obligatorio.";
+  const url = form.referenceUrl.trim();
+  if (url && !isHttpUrl(url)) errors.referenceUrl = "Ingresa un link válido que empiece con https://";
+  return errors;
+};
+
 /**
  * Alta / edición de una actividad del cronograma. El padre debe montarlo con
  * `key` distinto por actividad para que el formulario se inicialice con ella.
  *
  * @param {object|null} activity  null = nueva actividad
+ * @param {(values) => void} onSave
  */
 export default function ActivityFormModal({ activity, saving = false, onSave, onClose }) {
-  const [form, setForm] = useState(() => {
-    const source = { ...EMPTY_ACTIVITY, ...(activity ?? {}) };
-    // null -> "" para inputs controlados
-    return Object.fromEntries(Object.entries(source).map(([k, v]) => [k, v ?? (k === "prizes" ? [] : "")]));
+  const titleId = useId();
+  const [form, setForm] = useState(() => toForm(activity));
+  const [errors, setErrors] = useState({});
+
+  // Al editar un campo se borra su error: el mensaje no queda desactualizado.
+  const field = (name) => ({
+    value: form[name],
+    error: errors[name],
+    onChange: (e) => {
+      setForm((prev) => ({ ...prev, [name]: e.target.value }));
+      setErrors((prev) => omit(prev, name));
+    },
   });
 
-  const update = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const pickIcon = (icon) => {
+    setForm((prev) => ({ ...prev, icon }));
+    setErrors((prev) => omit(prev, "icon"));
+  };
 
   const updatePrize = (index, value) =>
     setForm((prev) => ({ ...prev, prizes: prev.prizes.map((p, i) => (i === index ? value : p)) }));
@@ -35,166 +70,124 @@ export default function ActivityFormModal({ activity, saving = false, onSave, on
 
   const submit = (e) => {
     e.preventDefault();
+    const next = validate(form);
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
     onSave({
       ...form,
+      title: form.title.trim(),
+      referenceUrl: form.referenceUrl.trim(),
       // Las filas de premio vacías se ignoran en vez de rechazar el formulario.
       prizes: form.prizes.map((p) => p.trim()).filter(Boolean),
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn p-4">
-      <form
-        onSubmit={submit}
-        className="relative bg-white p-6 rounded-3xl shadow-2xl w-full max-w-lg animate-fadeInUp border-2 border-green-300 space-y-3 max-h-[92vh] overflow-y-auto"
-      >
-        <h2 className="text-2xl font-extrabold text-green-700 text-center">
-          {activity ? "✏️ Editar actividad" : "➕ Nueva actividad"}
-        </h2>
-
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Hora *
-            <input
-              type="time"
-              className="input input-bordered w-full rounded-lg mt-1"
-              value={form.startTime}
-              onChange={update("startTime")}
-              required
-            />
-          </label>
-          <label className="block text-sm font-medium text-gray-700">
-            Participantes
-            <input
-              className="input input-bordered w-full rounded-lg mt-1"
-              placeholder="10 personas / TODOS"
-              value={form.participantsLabel}
-              onChange={update("participantsLabel")}
-              maxLength={50}
-            />
-          </label>
+    <Modal open onClose={saving ? undefined : onClose} labelledBy={titleId} className="max-w-lg p-6 sm:p-7">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-5">
+        <div className="text-center">
+          <div aria-hidden="true" className="text-4xl mb-1">{activity ? "✏️" : "🗓️"}</div>
+          <h2 id={titleId} className="font-festive font-bold text-2xl text-brand-strong">
+            {activity ? "Editar actividad" : "Nueva actividad"}
+          </h2>
         </div>
 
-        <label className="block text-sm font-medium text-gray-700">
-          Título *
-          <input
-            className="input input-bordered w-full rounded-lg mt-1"
-            placeholder="Ej: Torre de vasos 1 vs 1"
-            value={form.title}
-            onChange={update("title")}
-            required
-            maxLength={150}
-          />
-        </label>
-
-        <div className="text-sm font-medium text-gray-700">
-          Ícono
-          <div className="flex items-center gap-2 mt-1">
-            <input
-              className="input input-bordered w-20 rounded-lg text-center text-xl"
-              value={form.icon}
-              onChange={update("icon")}
-              maxLength={16}
-              aria-label="Ícono"
+        <fieldset disabled={saving} className="contents">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TextField label="Hora" type="time" {...field("startTime")} />
+            <TextField
+              label="Participantes"
+              placeholder="10 personas / TODOS"
+              maxLength={50}
+              hint="Opcional"
+              {...field("participantsLabel")}
             />
-            <div className="flex flex-wrap gap-1">
+          </div>
+
+          <TextField label="Título" placeholder="Ej: Torre de vasos 1 vs 1" maxLength={150} {...field("title")} />
+
+          {/* ÍCONO */}
+          <div className="flex flex-col gap-1.5">
+            <TextField
+              label="Ícono"
+              className="w-24"
+              inputClassName="text-center text-xl"
+              maxLength={16}
+              {...field("icon")}
+            />
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Íconos sugeridos">
               {ICON_SUGGESTIONS.map((icon) => (
-                <button
+                <IconButton
                   key={icon}
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, icon }))}
-                  className={`!w-9 !h-9 !p-0 text-lg rounded-lg border ${
-                    form.icon === icon ? "!bg-green-100 border-green-600" : "!bg-white border-gray-200"
-                  }`}
-                  title={`Usar ${icon}`}
+                  label={`Usar ${icon}`}
+                  aria-pressed={form.icon === icon}
+                  onClick={() => pickIcon(icon)}
+                  className={form.icon === icon ? "ring-2 ring-pine-700" : ""}
                 >
                   {icon}
-                </button>
+                </IconButton>
               ))}
             </div>
           </div>
-        </div>
 
-        <label className="block text-sm font-medium text-gray-700">
-          Descripción
-          <textarea
-            className="textarea textarea-bordered w-full rounded-lg mt-1"
-            placeholder="Reglas o detalles de la actividad (opcional)"
+          <TextField
+            label="Descripción"
+            multiline
             rows={2}
-            value={form.description}
-            onChange={update("description")}
+            placeholder="Reglas o detalles de la actividad"
             maxLength={1000}
+            hint="Opcional"
+            {...field("description")}
           />
-        </label>
 
-        <label className="block text-sm font-medium text-gray-700">
-          Link de ejemplo
-          <input
+          <TextField
+            label="Link de ejemplo"
             type="url"
-            className="input input-bordered w-full rounded-lg mt-1"
-            placeholder="https://www.tiktok.com/... (opcional)"
-            value={form.referenceUrl}
-            onChange={update("referenceUrl")}
+            icon="🎥"
+            placeholder="https://www.tiktok.com/..."
             maxLength={500}
+            hint="Opcional: un video que muestre cómo se juega."
+            {...field("referenceUrl")}
           />
-        </label>
 
-        {/* PREMIOS */}
-        <div className="text-sm font-medium text-gray-700">
-          🏆 Premios
-          <div className="space-y-2 mt-1">
+          {/* PREMIOS */}
+          <div className="flex flex-col gap-2">
+            <p className="font-bold text-sm text-[#4A2E1B]">🏆 Premios</p>
             {form.prizes.length === 0 && (
-              <p className="text-xs text-gray-500">Sin premios (p. ej. el intercambio de regalos).</p>
+              <p className="text-xs font-semibold text-stone-500">Sin premios (p. ej. el intercambio de regalos).</p>
             )}
             {form.prizes.map((prize, index) => (
-              <div key={index} className="flex gap-2">
-                <input
-                  className="input input-bordered flex-1 rounded-lg"
+              <div key={index} className="flex items-center gap-2">
+                <TextField
+                  className="flex-1"
+                  aria-label={`Premio ${index + 1}`}
                   placeholder="Ej: 3 audífonos P9"
+                  maxLength={255}
                   value={prize}
                   onChange={(e) => updatePrize(index, e.target.value)}
-                  maxLength={255}
                 />
-                <button
-                  type="button"
-                  onClick={() => removePrize(index)}
-                  className="!w-10 !p-0 !bg-red-100 !text-red-700 rounded-lg hover:!bg-red-200"
-                  title="Quitar premio"
-                >
+                <IconButton label={`Quitar premio ${index + 1}`} tone="danger" onClick={() => removePrize(index)}>
                   ✕
-                </button>
+                </IconButton>
               </div>
             ))}
             {form.prizes.length < MAX_PRIZES && (
-              <button
-                type="button"
-                onClick={addPrize}
-                className="!w-auto !py-1 !px-3 text-sm !bg-green-50 !text-green-800 border border-green-300 rounded-lg hover:!bg-green-100"
-              >
+              <Button variant="secondary" size="sm" onClick={addPrize} className="self-start">
                 + Agregar premio
-              </button>
+              </Button>
             )}
           </div>
-        </div>
 
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 !py-2 rounded-lg !bg-green-700 hover:!bg-green-800 text-white font-semibold disabled:opacity-60"
-          >
-            {saving ? "Guardando..." : "Guardar"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="flex-1 !py-2 rounded-lg !bg-gray-500 hover:!bg-gray-600 text-white font-semibold"
-          >
-            Cancelar
-          </button>
-        </div>
+          <div className="flex gap-3 pt-1">
+            <Button type="submit" block className="rounded-xl py-3">
+              {saving ? "Guardando..." : "Guardar"}
+            </Button>
+            <Button variant="neutral" block onClick={onClose} className="rounded-xl py-3">
+              Cancelar
+            </Button>
+          </div>
+        </fieldset>
       </form>
-    </div>
+    </Modal>
   );
 }

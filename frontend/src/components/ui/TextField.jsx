@@ -26,7 +26,7 @@ const TextField = forwardRef(function TextField(
         </label>
       )}
       <div
-        className={`relative flex items-center rounded-xl bg-white border-2 shadow-sm transition-all focus-within:ring-2 ${
+        className={`relative flex items-center rounded-xl bg-white has-[:disabled]:bg-stone-100 border-2 shadow-sm transition-all focus-within:ring-2 ${
           error
             ? "border-red-400 focus-within:ring-red-200"
             : "border-amber-200/80 focus-within:border-pine-700 focus-within:ring-pine-700/20"
@@ -43,7 +43,7 @@ const TextField = forwardRef(function TextField(
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={hint || error ? helpId : undefined}
-          className={`m-0 w-full min-w-0 bg-transparent py-2.5 font-semibold text-ink placeholder:text-stone-400 focus:outline-none text-base rounded-xl ${
+          className={`m-0 w-full min-w-0 bg-transparent py-2.5 font-semibold text-ink placeholder:text-stone-400 focus:outline-none text-base rounded-xl disabled:text-stone-500 disabled:cursor-not-allowed ${
             icon ? "pl-10" : "pl-3"
           } ${suffix ? "pr-11" : "pr-3"} ${multiline ? "resize-y min-h-[80px]" : ""} ${inputClassName}`}
           {...props}

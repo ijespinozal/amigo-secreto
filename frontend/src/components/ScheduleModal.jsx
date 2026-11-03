@@ -1,4 +1,64 @@
-import { formatScheduleTime, referenceLinkLabel } from '../utils/schedule';
+import { useId } from "react";
+import { formatScheduleTime, referenceLinkLabel } from "../utils/schedule";
+import Button from "./ui/Button";
+import Modal from "./ui/Modal";
+
+/** Una actividad del cronograma, como punto de una línea de tiempo. */
+function ActivityItem({ activity: act }) {
+  return (
+    <li className="relative pl-14">
+      {/* Punto de la línea de tiempo */}
+      <span
+        aria-hidden="true"
+        className="absolute left-0 top-0 w-11 h-11 rounded-full bg-white border-4 border-brand text-xl flex items-center justify-center shadow-md"
+      >
+        {act.icon || "⭐"}
+      </span>
+
+      <article className="bg-white rounded-[var(--radius-card)] border-2 border-gold-400/30 shadow-sm p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-pine-700 text-white font-festive font-bold text-xs">
+            ⏰ {formatScheduleTime(act.startTime)}
+          </span>
+          {act.participantsLabel && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gold-400/30 text-amber-900 font-festive font-bold text-xs">
+              👥 {act.participantsLabel}
+            </span>
+          )}
+        </div>
+
+        <h3 className="font-festive font-bold text-lg text-brand-strong leading-snug mt-2 break-words">{act.title}</h3>
+        {act.description && (
+          <p className="text-sm font-semibold text-ink-soft mt-1 whitespace-pre-line break-words">{act.description}</p>
+        )}
+
+        {act.prizes.length > 0 && (
+          <div className="mt-3 rounded-xl bg-cream-100 border border-gold-400/40 p-3">
+            <p className="font-festive font-bold text-xs uppercase tracking-wider text-amber-900">🏆 Premios</p>
+            <ul className="mt-1.5 flex flex-wrap gap-1.5">
+              {act.prizes.map((prize, idx) => (
+                <li key={idx} className="px-2.5 py-1 rounded-full bg-white border border-gold-400/50 text-sm font-bold text-ink break-words">
+                  {prize}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {act.referenceUrl && (
+          <a
+            href={act.referenceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-pine-700 hover:text-pine-800 underline underline-offset-2"
+          >
+            🎥 {referenceLinkLabel(act.referenceUrl)}
+          </a>
+        )}
+      </article>
+    </li>
+  );
+}
 
 /**
  * Cronograma de actividades del evento. Los datos los gestiona el admin
@@ -8,109 +68,37 @@ import { formatScheduleTime, referenceLinkLabel } from '../utils/schedule';
  * @param {string} [closeLabel]
  */
 export default function ScheduleModal({ isOpen, onClose, activities = [], closeLabel = "¡Entendido, a jugar! 🎁" }) {
-  if (!isOpen) return null;
+  const titleId = useId();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay Oscuro con Blur */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      ></div>
+    <Modal open={isOpen} onClose={onClose} labelledBy={titleId} className="max-w-2xl">
+      {/* Cabecera y pie fijos; solo las actividades se desplazan */}
+      <header className="sticky top-0 z-10 px-6 py-5 text-center bg-linear-to-br from-page-from via-page-via to-page-to text-on-page border-b-2 border-gold-400/50">
+        <h2 id={titleId} className="font-festive font-bold text-2xl sm:text-3xl tracking-tight drop-shadow-md">
+          <span aria-hidden="true">🎄</span> Cronograma navideño <span aria-hidden="true">🎅</span>
+        </h2>
+        <p className="font-semibold text-on-page-accent text-sm mt-0.5">¡Prepárate para participar y ganar!</p>
+      </header>
 
-      {/* Contenedor del Modal */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="schedule-title"
-        className="relative w-full max-w-2xl bg-[#790000] border-2 border-[#ffdf80] rounded-2xl shadow-2xl overflow-hidden animate-fadeInUp flex flex-col max-h-[90vh]"
-      >
-
-        {/* Cabecera Navideña */}
-        <div className="bg-[#a80000] p-4 text-center border-b border-[#ffdf80]/50 relative">
-          <div className="absolute top-2 left-4 text-2xl animate-bounce">🎄</div>
-          <div className="absolute top-2 right-4 text-2xl animate-bounce delay-100">🎅</div>
-          <h2 id="schedule-title" className="text-2xl font-bold text-white uppercase tracking-wider drop-shadow-md">
-            Cronograma Navideño
-          </h2>
-          <p className="text-[#ffdf80] text-sm font-medium">¡Prepárate para ganar!</p>
-        </div>
-
-        {/* Cuerpo Scrollable */}
-        <div className="p-6 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#900000] to-[#600000]">
-          {activities.length === 0 ? (
-            <p className="text-center text-white/80">Aún no hay actividades en el cronograma.</p>
-          ) : (
-          <div className="space-y-6 relative">
+      <div className="px-4 sm:px-6 py-6">
+        {activities.length === 0 ? (
+          <p className="text-center font-semibold text-ink-soft">Aún no hay actividades en el cronograma.</p>
+        ) : (
+          <ol className="relative flex flex-col gap-5" aria-label="Actividades">
             {/* Línea vertical del tiempo */}
-            <div className="absolute left-4 top-2 bottom-2 w-1 bg-[#ffdf80]/30 rounded-full"></div>
-
+            <span aria-hidden="true" className="absolute left-[20px] top-2 bottom-2 w-1 rounded-full bg-gold-400/40" />
             {activities.map((act) => (
-              <div key={act.id} className="relative pl-12 group">
-                {/* Punto de tiempo */}
-                <div className="absolute left-0 top-1 w-9 h-9 bg-white text-xl flex items-center justify-center rounded-full border-4 border-[#d00000] z-10 shadow-lg group-hover:scale-110 transition-transform">
-                  {act.icon || "⭐"}
-                </div>
-
-                {/* Tarjeta de actividad */}
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-all shadow-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                    <span className="inline-block px-3 py-1 bg-[#0a9400] text-white text-xs font-bold rounded-full shadow-md w-fit">
-                      ⏰ {formatScheduleTime(act.startTime)}
-                    </span>
-                    {act.participantsLabel && (
-                      <span className="text-xs text-[#ffdf80] font-semibold border border-[#ffdf80]/50 px-2 py-0.5 rounded uppercase w-fit">
-                        👥 {act.participantsLabel}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="text-lg font-bold text-white leading-tight mb-1">
-                    {act.title}
-                  </h3>
-
-                  {act.description && (
-                    <p className="text-gray-200 text-sm italic mb-2 whitespace-pre-line">{act.description}</p>
-                  )}
-
-                  {act.prizes.length > 0 && (
-                    <div className="mt-3 bg-black/20 rounded-lg p-3">
-                      <p className="text-xs text-[#ffdf80] font-bold uppercase mb-1">🏆 Premios:</p>
-                      <ul className="list-disc list-inside text-sm text-white/90 space-y-0.5">
-                        {act.prizes.map((prize, idx) => (
-                          <li key={idx}>{prize}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {act.referenceUrl && (
-                    <a
-                      href={act.referenceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-2 text-sm text-[#ffdf80] hover:text-white hover:underline transition-colors"
-                    >
-                      🎥 {referenceLinkLabel(act.referenceUrl)}
-                    </a>
-                  )}
-                </div>
-              </div>
+              <ActivityItem key={act.id} activity={act} />
             ))}
-          </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="bg-[#a80000] p-4 border-t border-[#ffdf80]/50 text-center">
-          <button
-            onClick={onClose}
-            className="bg-[#0a9400] hover:bg-[#0cc000] text-white px-8 py-2 rounded-xl font-bold text-lg shadow-lg transform hover:scale-105 transition-all border border-white/30"
-          >
-            {closeLabel}
-          </button>
-        </div>
+          </ol>
+        )}
       </div>
-    </div>
+
+      <footer className="sticky bottom-0 px-6 py-4 bg-cream-50/95 backdrop-blur border-t-2 border-gold-400/40 text-center">
+        <Button size="lg" onClick={onClose} className="w-full sm:w-auto" data-autofocus>
+          {closeLabel}
+        </Button>
+      </footer>
+    </Modal>
   );
 }

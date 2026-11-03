@@ -12,6 +12,9 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * @param {() => void} [onClose]  si se omite, no se cierra con Escape ni con clic afuera
  * @param {string} [labelledBy]   id del título (accesibilidad)
  * @param {string} [className]    clases del panel
+ *
+ * El foco inicial va al elemento marcado con `data-autofocus` o, si no hay,
+ * al primer elemento enfocable.
  */
 export default function Modal({ open, onClose, labelledBy, className = "", children }) {
   const panelRef = useRef(null);
@@ -24,7 +27,7 @@ export default function Modal({ open, onClose, labelledBy, className = "", child
     if (!open) return;
     const previouslyFocused = document.activeElement;
     const panel = panelRef.current;
-    panel?.querySelector(FOCUSABLE)?.focus();
+    (panel?.querySelector("[data-autofocus]") ?? panel?.querySelector(FOCUSABLE))?.focus();
 
     const handleKey = (e) => {
       if (e.key === "Escape" && onCloseRef.current) {

@@ -1,25 +1,19 @@
-export default function Spinner() {
+const SIZES = {
+  sm: "w-5 h-5 border-2",
+  md: "w-8 h-8 border-[3px]",
+  lg: "w-14 h-14 border-4",
+};
+
+/**
+ * Indicador de carga en línea (anillo dorado). Es decorativo: quien lo usa
+ * debe anunciar el estado (p. ej. role="status" en PageLoading).
+ * @param {"sm"|"md"|"lg"} [size]
+ */
+export default function Spinner({ size = "md", className = "" }) {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center">
-
-      <div className="relative w-32 h-32 animate-spin">
-
-        {/* 🎅 Círculo rojo externo */}
-        <div className="absolute inset-0 border-4 border-red-500 rounded-full opacity-80"></div>
-
-        {/* ❄ Círculo interno blanco */}
-        <div className="absolute inset-3 border-4 border-white rounded-full opacity-80"></div>
-
-        {/* 🌟 Estrella dorada */}
-        <div className="absolute inset-0 flex justify-center items-center">
-          <span className="text-yellow-400 text-5xl animate-pulse">⭐</span>
-        </div>
-
-        {/* 🎁 Regalo animado */}
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 animate-bounce">
-          <span className="text-red-600 text-4xl">🎁</span>
-        </div>
-      </div>
-    </div>
+    <span
+      aria-hidden="true"
+      className={`inline-block shrink-0 rounded-full border-gold-400/30 border-t-gold-400 animate-spin ${SIZES[size]} ${className}`}
+    />
   );
 }

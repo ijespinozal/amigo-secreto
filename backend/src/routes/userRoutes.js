@@ -9,6 +9,7 @@ import {
   updateGiftOption,
   deleteGiftOption,
   changePassword,
+  updateProfile,
   getEventDonations,
   getGroupGifts,
 } from "../controllers/userController.js";
@@ -18,7 +19,7 @@ import { protect } from "../middlewares/authMiddleware.js";
 import { loadParticipant } from "../middlewares/participantContext.js";
 import { validate } from "../middlewares/validate.js";
 import { changePasswordLimiter } from "../middlewares/rateLimiters.js";
-import { changePasswordSchema, createGiftSchema, idParam, updateGiftSchema } from "../validation/schemas.js";
+import { changePasswordSchema, createGiftSchema, idParam, updateGiftSchema, updateProfileSchema } from "../validation/schemas.js";
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ router.use(protect);
 // Cuenta
 router.get("/events", getMyEvents);
 router.post("/change-password", changePasswordLimiter, validate(changePasswordSchema), changePassword);
+router.put("/profile", validate(updateProfileSchema), updateProfile);
 
 // Por evento (cabecera X-Event-Id; sin ella, el evento más reciente)
 router.get("/event-info", loadParticipant, getMyEventInfo);

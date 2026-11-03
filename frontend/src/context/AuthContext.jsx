@@ -34,6 +34,12 @@ export function AuthProvider({ children }) {
     setSessionExpired(false);
   };
 
+  /** Actualiza los datos del usuario en sesión (p. ej. tras editar su perfil). */
+  const updateUser = useCallback((userObj) => {
+    localStorage.setItem("user", JSON.stringify(userObj));
+    setUser(userObj);
+  }, []);
+
   /** @param {{ expired?: boolean }} [options] expired: la sesión venció (se avisa en el login) */
   const logout = useCallback(({ expired = false } = {}) => {
     clearSessionStorage();
@@ -56,7 +62,7 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, sessionExpired, dismissSessionExpired }}>
+    <AuthContext.Provider value={{ token, user, login, logout, updateUser, sessionExpired, dismissSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );

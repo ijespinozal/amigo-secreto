@@ -7,6 +7,7 @@ import { Op } from "sequelize";
 import { ERROR_CODES, MAX_GIFTS_PER_PARTICIPANT } from "../config/constants.js";
 import { Participant, GiftOption, Assignment, User, Event, sequelize } from "../models/index.js";
 import { MOST_RECENT_EVENT_ORDER } from "../middlewares/participantContext.js";
+import { toSafeUser } from "../utils/users.js";
 
 const serializeEvent = (event) => ({
   id: event.id,
@@ -257,6 +258,34 @@ export const getEventDonations = async (req, res) => {
   }
 };
 
+/**
+ * Cambia el nombre y apellido del usuario.
+ * PUT /api/user/profile
+ *
+ * Cada participación guarda una copia del nombre (los participantes pueden
+ * existir antes de tener cuenta), así que se actualizan todas en la misma
+ * transacción: los demás ven el nombre nuevo en todos sus eventos.
+ */
+export const updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName } = req.body;
+
+    const user = await sequelize.transaction(async (transaction) => {
+      const found = await User.findByPk(req.user.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!found) return null;
+      await found.update({ firstName, lastName }, { transaction });
+      await Participant.update({ firstName, lastName }, { where: { userId: found.id }, transaction });
+      return found;
+    });
+
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    return res.json({ message: "¡Tus datos se actualizaron! 🎄", user: toSafeUser(user) });
+  } catch (err) {
+    console.error("updateProfile:", err);
+    return res.status(500).json({ message: "Error en el servidor" });
+  }
+};
+
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -265,7 +294,14 @@ export const changePassword = async (req, res) => {
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Contraseña actual incorrecta" });
+    if (!isMatch) {
+      return res.status(400).json({ code: ERROR_CODES.WRONG_PASSWORD, message: "Contraseña actual incorrecta" });
+    }
+    if (newPassword === currentPassword) {
+      return res
+        .status(400)
+        .json({ code: ERROR_CODES.SAME_PASSWORD, message: "La nueva contraseña debe ser distinta a la actual" });
+    }
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
