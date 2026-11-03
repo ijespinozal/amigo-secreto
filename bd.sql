@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS assignments (
   createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY assignments_event_giver_unique (eventId, giverParticipantId),
+  UNIQUE KEY assignments_event_receiver_unique (eventId, receiverParticipantId),
   CONSTRAINT fk_assignments_eventId FOREIGN KEY (eventId)
     REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_assignments_giverParticipantId FOREIGN KEY (giverParticipantId)

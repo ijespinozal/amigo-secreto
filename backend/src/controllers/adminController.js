@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { Op, UniqueConstraintError } from "sequelize";
 import { ERROR_CODES, MIN_PARTICIPANTS_FOR_DRAW } from "../config/constants.js";
 import { Event, Participant, User, Assignment, GiftOption, ScheduleActivity, sequelize } from "../models/index.js";
-import { generateAssignments } from "../utils/drawUtils.js";
+import { findNameConflicts, generateAssignments } from "../utils/drawUtils.js";
 import { generateTemporaryPassword } from "../utils/passwords.js";
 
 const EVENT_NOT_FOUND = { message: "Evento no encontrado" };
@@ -315,7 +315,7 @@ export const runDraw = async (req, res) => {
         };
       }
 
-      const participants = await Participant.findAll({ where: { eventId }, attributes: ["id"], transaction });
+      const participants = await Participant.findAll({ where: { eventId }, attributes: ["id", "firstName"], transaction });
       if (participants.length < MIN_PARTICIPANTS_FOR_DRAW) {
         return {
           status: 400,
@@ -326,7 +326,23 @@ export const runDraw = async (req, res) => {
         };
       }
 
-      const pairs = generateAssignments(participants.map((p) => p.id));
+      // Quienes comparten el primer nombre no pueden regalarse entre sí: con
+      // demasiados del mismo nombre el sorteo es imposible y se explica por qué.
+      const [conflict] = findNameConflicts(participants);
+      if (conflict) {
+        return {
+          status: 400,
+          body: {
+            code: ERROR_CODES.DRAW_NAME_CONFLICT,
+            message:
+              `Hay ${conflict.count} participantes llamados "${conflict.name}" de ${participants.length} en total. ` +
+              `Como quienes tienen el mismo nombre no pueden regalarse entre sí, pueden ser como máximo ${conflict.max}. ` +
+              "Agrega más participantes para poder sortear.",
+          },
+        };
+      }
+
+      const pairs = generateAssignments(participants);
 
       await Assignment.destroy({ where: { eventId }, transaction });
       await Assignment.bulkCreate(
