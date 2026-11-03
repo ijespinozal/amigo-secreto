@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import env from "./config/env.js";
+import sequelize from "./config/database.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -32,8 +33,37 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 
-// healthcheck
+// healthcheck (liveness): solo el proceso. Lo usa Render; no toca la BD para
+// que un corte momentáneo de la base no provoque reinicios del servicio.
 app.get("/health", (req, res) => res.json({ ok: true }));
+
+// healthcheck de la BD: lo consulta un monitor externo (UptimeRobot) cada
+// pocos minutos. Mantiene despierto el servicio de Render y genera actividad
+// en la BD para que el plan gratuito de Aiven no la apague por inactividad.
+const DB_HEALTH_TIMEOUT_MS = 5000;
+
+app.get("/health/db", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const started = Date.now();
+  let timer;
+  try {
+    await Promise.race([
+      sequelize.query("SELECT 1"),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`timeout de ${DB_HEALTH_TIMEOUT_MS} ms`)), DB_HEALTH_TIMEOUT_MS);
+      }),
+    ]);
+    res.json({ ok: true, db: "up", latencyMs: Date.now() - started });
+  } catch (err) {
+    // El detalle va al log; al cliente no se le exponen datos de la conexión.
+    // Algunos fallos de red (p. ej. AggregateError de IPv4/IPv6) llegan sin mensaje.
+    const cause = err.message || err.original?.code || err.parent?.code || err.name;
+    console.error("Health check de BD falló:", cause);
+    res.status(503).json({ ok: false, db: "down" });
+  } finally {
+    clearTimeout(timer);
+  }
+});
 
 // error handler
 app.use((err, req, res, next) => {
