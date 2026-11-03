@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="es">
+<!-- Tema por defecto: "green" (Noche Mágica). Debe coincidir con DEFAULT_THEME en src/theme/theme.js. -->
+<html lang="es" data-theme="green">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <meta name="theme-color" content="#9B1C1C" />
+    <meta name="theme-color" content="#0B3324" />
     <title>Amigo Secreto</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,11 +14,14 @@
       rel="stylesheet"
     />
 
-    <!-- Aplica el tema guardado antes del primer pintado (evita el parpadeo rojo -> verde). -->
+    <!-- Aplica el tema elegido por el usuario antes del primer pintado (evita el parpadeo de colores). -->
     <script>
       try {
         var theme = localStorage.getItem("theme");
-        if (theme === "green" || theme === "red") document.documentElement.dataset.theme = theme;
+        if (theme === "green" || theme === "red") {
+          document.documentElement.dataset.theme = theme;
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === "red" ? "#9B1C1C" : "#0B3324");
+        }
       } catch (e) {}
     </script>
   </head>

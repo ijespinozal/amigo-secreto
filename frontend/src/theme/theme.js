@@ -7,9 +7,15 @@ export const THEMES = Object.freeze({
   green: { label: "Noche Mágica", icon: "🎅", themeColor: "#0B3324" },
 });
 
+// Tema para quien nunca usó el botón (debe coincidir con <html data-theme> en index.html).
+export const DEFAULT_THEME = "green";
+
 const STORAGE_KEY = "theme";
 
-export const getTheme = () => (document.documentElement.dataset.theme === "green" ? "green" : "red");
+export const getTheme = () => {
+  const current = document.documentElement.dataset.theme;
+  return current in THEMES ? current : DEFAULT_THEME;
+};
 
 export const applyTheme = (theme) => {
   document.documentElement.dataset.theme = theme;
