@@ -11,6 +11,7 @@ import CountdownHero from "../../components/dashboard/CountdownHero";
 import DonationsCard from "../../components/dashboard/DonationsCard";
 import PrizeCarousel from "../../components/dashboard/PrizeCarousel";
 import Badge from "../../components/ui/Badge";
+import { SHOW_PRIZE_CAROUSEL } from "../../config/features";
 import { MAX_GIFTS_PER_PARTICIPANT } from "../../config/rules";
 import { scheduleSeenKey } from "../../utils/schedule";
 import { NO_EVENT_DIALOG, NOT_DRAWN_DIALOG } from "../../config/messages";
@@ -195,7 +196,7 @@ export default function UserDashboard() {
           )}
         </section>
 
-        <PrizeCarousel />
+        {SHOW_PRIZE_CAROUSEL && <PrizeCarousel />}
 
         {selectedEvent && (
           <DonationsCard donations={donationsData ?? []} myParticipantId={selectedEvent.participantId} />
