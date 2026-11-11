@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api, { getErrorMessage } from "../api";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import AlertMessage from "../components/AlertMessage";
 import AuthCard from "../components/auth/AuthCard";
@@ -15,8 +15,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  const navigate = useNavigate();
-
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -24,14 +22,8 @@ export default function Login() {
       const res = await api.post("/auth/login", { phone, password });
       const { token, user } = res.data;
 
-      setAlert({ type: "success", title: "¡Bienvenido! 🎄", message: "Ingresando..." });
-
+      // Con la sesión guardada, GuestRoute lleva a la pantalla de inicio del rol.
       login(token, user);
-
-      setTimeout(() => {
-        if (user.role === "admin") navigate("/admin/dashboard");
-        else navigate("/user/home");
-      }, 1000);
 
     } catch (err) {
 

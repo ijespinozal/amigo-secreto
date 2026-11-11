@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { homePathFor } from "../routes/homePath";
 import ChangePasswordModal from "./ChangePasswordModal";
 import ProfileModal from "./ProfileModal";
 import Avatar from "./ui/Avatar";
@@ -112,7 +113,7 @@ export default function Header() {
   const [openPasswordModal, setOpenPasswordModal] = useState(false);
   const [openProfileModal, setOpenProfileModal] = useState(false);
 
-  const home = user ? (user.role === "admin" ? "/admin/dashboard" : "/user/home") : "/";
+  const home = homePathFor(user);
 
   return (
     <header className="relative z-40 w-full bg-header backdrop-blur-md border-b-2 border-gold-400/40 shadow-sm">

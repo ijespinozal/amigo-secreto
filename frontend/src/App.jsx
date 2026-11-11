@@ -1,6 +1,7 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import GuestRoute from "./routes/GuestRoute";
 import PrivateRoute from "./routes/PrivateRoute";
 import EventSelector from "./components/EventSelector";
 import FestiveBackground from "./components/layout/FestiveBackground";
@@ -35,8 +36,9 @@ export default function App() {
         <EventSelector />
 
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Solo invitados: con sesión iniciada redirigen al inicio del rol */}
+          <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
           {/* Admin */}
           <Route path="/admin/dashboard" element={
@@ -82,8 +84,8 @@ export default function App() {
             </PrivateRoute>
           } />
 
-          {/* fallback */}
-          <Route path="*" element={<Login />} />
+          {/* Cualquier otra dirección (p. ej. /login): al inicio, que decide según la sesión */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 

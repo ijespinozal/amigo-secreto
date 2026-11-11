@@ -1,10 +1,11 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { homePathFor } from "./homePath";
 
 export default function PrivateRoute({ children, adminOnly = false }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/" replace />;
-  if (adminOnly && user.role !== "admin") return <Navigate to="/user/home" replace />;
+  if (adminOnly && user.role !== "admin") return <Navigate to={homePathFor(user)} replace />;
   return children;
 }
