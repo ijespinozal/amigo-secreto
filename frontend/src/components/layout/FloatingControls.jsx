@@ -4,6 +4,20 @@ import { THEMES, applyTheme, getTheme } from "../../theme/theme";
 const SONGS = ["/music/Navidad01.mp3", "/music/Navidad02.mp3", "/music/Navidad03.mp3"];
 const MUSIC_PREF_KEY = "music";
 
+/**
+ * Lista en orden aleatorio (Fisher-Yates). `avoidFirst` evita que la nueva
+ * vuelta empiece con la canción que acaba de sonar.
+ */
+const shufflePlaylist = (songs, avoidFirst) => {
+  const list = [...songs];
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  if (list.length > 1 && list[0] === avoidFirst) [list[0], list[1]] = [list[1], list[0]];
+  return list;
+};
+
 // 48 px en celular (tamaño táctil estándar), 56 px desde sm.
 const floatingButton =
   "w-12 h-12 sm:w-14 sm:h-14 p-0 rounded-full flex items-center justify-center text-xl sm:text-2xl border-2 border-white/80 " +
@@ -21,7 +35,8 @@ const readMusicPref = () => {
 /**
  * Botones flotantes (abajo a la derecha):
  *  - Tema: alterna Rojo Navideño 🎄 / Noche Mágica 🎅.
- *  - Música: reproduce la lista en bucle. Los navegadores bloquean el audio
+ *  - Música: reproduce la lista en orden aleatorio (cada visita empieza con
+ *    una canción distinta y suenan todas antes de repetir). Los navegadores bloquean el audio
  *    hasta la primera interacción, así que arranca con el primer clic en la
  *    página, salvo que la persona la haya silenciado antes (se recuerda).
  */
@@ -29,6 +44,9 @@ export default function FloatingControls() {
   const [theme, setTheme] = useState(getTheme);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
+  // Orden aleatorio de esta visita; al terminar la vuelta se vuelve a mezclar.
+  const [initialPlaylist] = useState(() => shufflePlaylist(SONGS));
+  const playlistRef = useRef(initialPlaylist);
   const songRef = useRef(0);
 
   const toggleTheme = () => {
@@ -65,8 +83,13 @@ export default function FloatingControls() {
   }, [play]);
 
   const nextSong = () => {
-    songRef.current = (songRef.current + 1) % SONGS.length;
-    audioRef.current.src = SONGS[songRef.current];
+    const current = playlistRef.current[songRef.current];
+    songRef.current += 1;
+    if (songRef.current >= playlistRef.current.length) {
+      playlistRef.current = shufflePlaylist(SONGS, current);
+      songRef.current = 0;
+    }
+    audioRef.current.src = playlistRef.current[songRef.current];
     play();
   };
 
@@ -95,7 +118,7 @@ export default function FloatingControls() {
         <span aria-hidden="true">{playing ? "🎶" : "🔇"}</span>
       </button>
 
-      <audio ref={audioRef} src={SONGS[0]} onEnded={nextSong} preload="none" />
+      <audio ref={audioRef} src={initialPlaylist[0]} onEnded={nextSong} preload="none" />
     </div>
   );
 }
