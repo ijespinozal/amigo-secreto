@@ -2,7 +2,7 @@
 // Esquemas de entrada de la API. El backend es la última línea de defensa:
 // el frontend valida por comodidad del usuario, aquí se valida por seguridad.
 import { z } from "zod";
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../config/constants.js";
+import { CHAT_MESSAGE_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../config/constants.js";
 
 const requiredText = (label, max) =>
   z
@@ -191,3 +191,16 @@ export const updateGiftSchema = z
     donation: giftFields.donation.optional(),
     link: giftFields.link.optional(),
   });
+
+// ---- Chat secreto ----
+export const chatThreadParam = z.object({
+  thread: z.enum(["friend", "santa"], { errorMap: () => ({ message: "Conversación no válida" }) }),
+});
+
+export const chatMessageSchema = z.object({
+  body: z
+    .string({ required_error: "Escribe un mensaje", invalid_type_error: "El mensaje debe ser texto" })
+    .trim()
+    .min(1, "Escribe un mensaje")
+    .max(CHAT_MESSAGE_MAX_LENGTH, `El mensaje admite máximo ${CHAT_MESSAGE_MAX_LENGTH} caracteres`),
+});

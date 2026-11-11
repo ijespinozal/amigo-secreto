@@ -7,6 +7,7 @@ import useApiData from "../../hooks/useApiData";
 import useEvents from "../../hooks/useEvents";
 import ScheduleModal from "../../components/ScheduleModal";
 import ActionCard from "../../components/dashboard/ActionCard";
+import ChatCard from "../../components/dashboard/ChatCard";
 import CountdownHero from "../../components/dashboard/CountdownHero";
 import DonationsCard from "../../components/dashboard/DonationsCard";
 import PrizeCarousel from "../../components/dashboard/PrizeCarousel";
@@ -50,6 +51,8 @@ export default function UserDashboard() {
   };
 
   const drawDone = selectedEvent?.drawDone === true;
+  // Mensajes secretos: existen solo después del sorteo.
+  const { data: chats } = useApiData("/user/chats", { ...eventScope, enabled: eventScope.enabled && drawDone });
 
   /**
    * ¿Puede entrar a una pantalla que requiere evento? Si el dato local dice
@@ -195,6 +198,8 @@ export default function UserDashboard() {
             />
           )}
         </section>
+
+        {chats?.available && <ChatCard chats={chats} />}
 
         {SHOW_PRIZE_CAROUSEL && <PrizeCarousel />}
 

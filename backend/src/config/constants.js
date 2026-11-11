@@ -27,4 +27,9 @@ export const ERROR_CODES = Object.freeze({
   WRONG_PASSWORD: "WRONG_PASSWORD",
   SAME_PASSWORD: "SAME_PASSWORD",
   DRAW_NAME_CONFLICT: "DRAW_NAME_CONFLICT",
+  CHAT_UNAVAILABLE: "CHAT_UNAVAILABLE",
 });
+
+// Chat secreto
+export const CHAT_MESSAGE_MAX_LENGTH = 500;
+export const CHAT_HISTORY_LIMIT = 200; // mensajes más recientes por conversación

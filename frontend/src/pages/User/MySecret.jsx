@@ -129,6 +129,9 @@ export default function MySecret() {
           <p className="mt-5 text-sm font-bold text-brand bg-brand-soft rounded-xl px-4 py-3">
             🤫 ¡Shhh! Que no se entere hasta el intercambio.
           </p>
+          <Button to="/user/chat" variant="secondary" className="mt-3 self-center">
+            💬 Escribirle en secreto
+          </Button>
         </Card>
 
         {/* OPCIONES DE REGALO */}

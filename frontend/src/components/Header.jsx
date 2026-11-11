@@ -84,6 +84,9 @@ function UserMenu({ user, onEditProfile, onChangePassword, onLogout }) {
               <Link to="/user/group-gifts" onClick={close} className={menuItem}>
                 <span aria-hidden="true">🎁</span> Regalos del grupo
               </Link>
+              <Link to="/user/chat" onClick={close} className={menuItem}>
+                <span aria-hidden="true">💬</span> Mensajes secretos
+              </Link>
             </>
           )}
           {/* Cuenta: disponible para participantes y para el admin */}

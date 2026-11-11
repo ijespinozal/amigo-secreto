@@ -96,6 +96,22 @@ CREATE TABLE IF NOT EXISTS assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Cronograma de actividades de un evento (gestionado por el admin)
+-- Chat secreto: mensajes entre quien regala y quien recibe (por asignación).
+-- No guarda quién escribió, solo la dirección (fromGiver), para que el
+-- Santa secreto no se pueda identificar. Se borra al reabrir el sorteo.
+CREATE TABLE IF NOT EXISTS secretMessages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  assignmentId INT NOT NULL,
+  fromGiver TINYINT(1) NOT NULL,
+  body VARCHAR(500) NOT NULL,
+  readAt DATETIME NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY secret_messages_assignment_id (assignmentId, id),
+  CONSTRAINT fk_secretMessages_assignmentId FOREIGN KEY (assignmentId)
+    REFERENCES assignments(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS scheduleActivities (
   id INT AUTO_INCREMENT PRIMARY KEY,
   eventId INT NOT NULL,

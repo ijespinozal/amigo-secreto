@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     setConfirm({
       icon: "🔄",
       message: `¿Reabrir el sorteo de "${ev.title}"?`,
-      details: "Se borrarán las asignaciones actuales. Si alguien ya vio a su amigo secreto, al volver a sortear le puede tocar otra persona.",
+      details: "Se borrarán las asignaciones actuales y los mensajes secretos de cada pareja. Si alguien ya vio a su amigo secreto, al volver a sortear le puede tocar otra persona.",
       confirmLabel: "Sí, reabrir",
       action: async () => {
         const res = await api.post(`/admin/event/${ev.id}/reset-draw`);

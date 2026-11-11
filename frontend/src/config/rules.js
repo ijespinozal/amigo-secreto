@@ -6,3 +6,4 @@ export const PASSWORD_MAX_LENGTH = 72; // límite de bcrypt
 export const MAX_GIFTS_PER_PARTICIPANT = 3;
 export const MIN_PARTICIPANTS_FOR_DRAW = 3;
 export const PHONE_PATTERN = /^\d{9}$/;
+export const CHAT_MESSAGE_MAX_LENGTH = 500;

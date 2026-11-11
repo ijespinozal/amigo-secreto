@@ -14,12 +14,21 @@ import {
   getGroupGifts,
 } from "../controllers/userController.js";
 import { getMySchedule } from "../controllers/scheduleController.js";
+import { getChats, getMessages, sendMessage } from "../controllers/chatController.js";
 
 import { protect } from "../middlewares/authMiddleware.js";
 import { loadParticipant } from "../middlewares/participantContext.js";
 import { validate } from "../middlewares/validate.js";
-import { changePasswordLimiter } from "../middlewares/rateLimiters.js";
-import { changePasswordSchema, createGiftSchema, idParam, updateGiftSchema, updateProfileSchema } from "../validation/schemas.js";
+import { changePasswordLimiter, chatMessageLimiter } from "../middlewares/rateLimiters.js";
+import {
+  changePasswordSchema,
+  chatMessageSchema,
+  chatThreadParam,
+  createGiftSchema,
+  idParam,
+  updateGiftSchema,
+  updateProfileSchema,
+} from "../validation/schemas.js";
 
 const router = express.Router();
 
@@ -36,6 +45,18 @@ router.get("/secret-friend", loadParticipant, getMySecretFriend);
 router.get("/donations", loadParticipant, getEventDonations);
 router.get("/schedule", loadParticipant, getMySchedule);
 router.get("/group-gifts", loadParticipant, getGroupGifts);
+
+// Chat secreto (por evento): "friend" = con mi amigo secreto, "santa" = con mi Santa secreto
+router.get("/chats", loadParticipant, getChats);
+router.get("/chats/:thread", validate(chatThreadParam, "params"), loadParticipant, getMessages);
+router.post(
+  "/chats/:thread",
+  chatMessageLimiter,
+  validate(chatThreadParam, "params"),
+  validate(chatMessageSchema),
+  loadParticipant,
+  sendMessage
+);
 router.get("/gifts", loadParticipant, getMyGifts);
 router.post("/gift", loadParticipant, validate(createGiftSchema), addGiftOption);
 

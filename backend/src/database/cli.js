@@ -91,7 +91,10 @@ if (!run) {
 try {
   await run();
 } catch (err) {
-  console.error(`✖ ${command} falló:`, err.message);
+  // Un fallo de conexión (p. ej. MySQL apagado) puede llegar sin mensaje.
+  const cause = err.message || err.original?.code || err.parent?.code || err.name;
+  const hint = /ECONNREFUSED|ConnectionRefused/.test(`${cause} ${err.name}`) ? " (¿está encendida la base de datos?)" : "";
+  console.error(`✖ ${command} falló: ${cause}${hint}`);
   process.exitCode = 1;
 } finally {
   await sequelize.close();

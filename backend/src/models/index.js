@@ -9,6 +9,7 @@ import defineGiftOption from "./GiftOption.js";
 import defineAssignment from "./Assignment.js";
 import defineScheduleActivity from "./ScheduleActivity.js";
 import defineScheduleActivityPrize from "./ScheduleActivityPrize.js";
+import defineSecretMessage from "./SecretMessage.js";
 
 const User = defineUser(sequelize, DataTypes);
 const Event = defineEvent(sequelize, DataTypes);
@@ -17,6 +18,7 @@ const GiftOption = defineGiftOption(sequelize, DataTypes);
 const Assignment = defineAssignment(sequelize, DataTypes);
 const ScheduleActivity = defineScheduleActivity(sequelize, DataTypes);
 const ScheduleActivityPrize = defineScheduleActivityPrize(sequelize, DataTypes);
+const SecretMessage = defineSecretMessage(sequelize, DataTypes);
 
 /** Associations */
 // Event <-> Participant
@@ -49,6 +51,10 @@ ScheduleActivity.belongsTo(Event, { foreignKey: "eventId" });
 ScheduleActivity.hasMany(ScheduleActivityPrize, { foreignKey: "activityId", as: "prizes", onDelete: "CASCADE" });
 ScheduleActivityPrize.belongsTo(ScheduleActivity, { foreignKey: "activityId" });
 
+// Assignment <-> SecretMessage (chat secreto de cada pareja del sorteo)
+Assignment.hasMany(SecretMessage, { foreignKey: "assignmentId", as: "messages", onDelete: "CASCADE" });
+SecretMessage.belongsTo(Assignment, { foreignKey: "assignmentId" });
+
 // El esquema lo gestionan exclusivamente las migraciones (src/database/migrations).
 // No se usa sequelize.sync(): con `alter` duplicaba índices en cada arranque y
 // sin él no aplicaba cambios a tablas existentes.
@@ -67,5 +73,6 @@ export {
   Assignment,
   ScheduleActivity,
   ScheduleActivityPrize,
+  SecretMessage,
   connectDB,
 };

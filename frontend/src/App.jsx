@@ -20,6 +20,7 @@ import UserDashboard from "./pages/User/UserDashboard";
 import MyGiftForm from "./pages/User/MyGiftForm";
 import MySecret from "./pages/User/MySecret";
 import GroupGifts from "./pages/User/GroupGifts";
+import SecretChat from "./pages/User/SecretChat";
 
 export default function App() {
   return (
@@ -73,6 +74,11 @@ export default function App() {
           <Route path="/user/group-gifts" element={
             <PrivateRoute>
               <GroupGifts />
+            </PrivateRoute>
+          } />
+          <Route path="/user/chat" element={
+            <PrivateRoute>
+              <SecretChat />
             </PrivateRoute>
           } />
 
