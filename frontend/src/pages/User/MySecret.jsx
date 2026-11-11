@@ -4,6 +4,7 @@ import { getErrorCode } from "../../api";
 import Card from "../../components/Card";
 import GiftItem from "../../components/gifts/GiftItem";
 import PageHeader from "../../components/layout/PageHeader";
+import GiftReveal from "../../components/secret/GiftReveal";
 import Avatar from "../../components/ui/Avatar";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
@@ -91,70 +92,73 @@ export default function MySecret() {
     <div className="flex flex-col gap-8 animate-fade-in">
       <PageHeader title="Tu amigo secreto" emoji="🤫" subtitle={event?.title} />
 
-      {/* Las dos tarjetas comparten altura (stretch) y centran su contenido. */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* REVELACIÓN */}
-        <Card className="lg:col-span-2 text-center relative overflow-hidden flex flex-col justify-center">
-          <div aria-hidden="true" className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gold-400/20" />
-          <p className="font-festive font-bold text-sm uppercase tracking-widest text-ink-soft">Este año le regalas a</p>
+      {/* La primera vez, una caja de regalo que se abre con un toque. */}
+      <GiftReveal key={`${event?.id}:${friend.id}`} eventId={event?.id} friendId={friend.id}>
+        {/* Las dos tarjetas comparten altura (stretch) y centran su contenido. */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* REVELACIÓN */}
+          <Card className="lg:col-span-2 text-center relative overflow-hidden flex flex-col justify-center">
+            <div aria-hidden="true" className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gold-400/20" />
+            <p className="font-festive font-bold text-sm uppercase tracking-widest text-ink-soft">Este año le regalas a</p>
 
-          <div className="flex justify-center mt-4">
-            <Avatar firstName={friend.firstName} lastName={friend.lastName} size="xl" className="ring-4 ring-gold-400/50" />
-          </div>
-          <h2 className="font-festive font-bold text-3xl text-brand-strong mt-3 break-words">{fullName}</h2>
-
-          {(friend.phone || friend.email) && (
-            <div className="mt-2 text-sm font-semibold text-ink-soft space-y-0.5 break-words">
-              {friend.phone && <p>📞 {formatPhone(friend.phone)}</p>}
-              {friend.email && <p>✉️ {friend.email}</p>}
+            <div className="flex justify-center mt-4">
+              <Avatar firstName={friend.firstName} lastName={friend.lastName} size="xl" className="ring-4 ring-gold-400/50" />
             </div>
-          )}
+            <h2 className="font-festive font-bold text-3xl text-brand-strong mt-3 break-words">{fullName}</h2>
 
-          {when && (
-            <div className="mt-4">
-              <Badge tone="green" wrap>🗓️ {when}</Badge>
-            </div>
-          )}
-          {event?.location && (
-            <a
-              href={mapsUrl(event.location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-block text-sm font-bold text-pine-700 hover:text-pine-800 underline underline-offset-2 break-words"
-            >
-              📍 {event.location}
-            </a>
-          )}
+            {(friend.phone || friend.email) && (
+              <div className="mt-2 text-sm font-semibold text-ink-soft space-y-0.5 break-words">
+                {friend.phone && <p>📞 {formatPhone(friend.phone)}</p>}
+                {friend.email && <p>✉️ {friend.email}</p>}
+              </div>
+            )}
 
-          <p className="mt-5 text-sm font-bold text-brand bg-brand-soft rounded-xl px-4 py-3">
-            🤫 ¡Shhh! Que no se entere hasta el intercambio.
-          </p>
-          <Button to="/user/chat" variant="secondary" className="mt-3 self-center">
-            💬 Escribirle en secreto
-          </Button>
-        </Card>
+            {when && (
+              <div className="mt-4">
+                <Badge tone="green" wrap>🗓️ {when}</Badge>
+              </div>
+            )}
+            {event?.location && (
+              <a
+                href={mapsUrl(event.location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-sm font-bold text-pine-700 hover:text-pine-800 underline underline-offset-2 break-words"
+              >
+                📍 {event.location}
+              </a>
+            )}
 
-        {/* OPCIONES DE REGALO */}
-        <Card
-          className="lg:col-span-3 flex flex-col"
-          title={<><span aria-hidden="true">🎁</span> Sus opciones de regalo</>}
-          actions={<Badge tone="gold">{gifts.length} {gifts.length === 1 ? "opción" : "opciones"}</Badge>}
-        >
-          {gifts.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <EmptyState icon="⏳" title={`${friend.firstName} aún no registró opciones`}>
-                Vuelve más tarde: cuando agregue sus ideas de regalo, aparecerán aquí.
-              </EmptyState>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {gifts.map((g, index) => (
-                <GiftItem key={g.id} gift={g} position={index + 1} />
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
+            <p className="mt-5 text-sm font-bold text-brand bg-brand-soft rounded-xl px-4 py-3">
+              🤫 ¡Shhh! Que no se entere hasta el intercambio.
+            </p>
+            <Button to="/user/chat" variant="secondary" className="mt-3 self-center">
+              💬 Escribirle en secreto
+            </Button>
+          </Card>
+
+          {/* OPCIONES DE REGALO */}
+          <Card
+            className="lg:col-span-3 flex flex-col"
+            title={<><span aria-hidden="true">🎁</span> Sus opciones de regalo</>}
+            actions={<Badge tone="gold">{gifts.length} {gifts.length === 1 ? "opción" : "opciones"}</Badge>}
+          >
+            {gifts.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState icon="⏳" title={`${friend.firstName} aún no registró opciones`}>
+                  Vuelve más tarde: cuando agregue sus ideas de regalo, aparecerán aquí.
+                </EmptyState>
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {gifts.map((g, index) => (
+                  <GiftItem key={g.id} gift={g} position={index + 1} />
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+      </GiftReveal>
     </div>
   );
 }

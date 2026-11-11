@@ -2,15 +2,16 @@ import React, { useCallback, useEffect, useState } from "react";
 import { AUTH_EXPIRED_EVENT } from "../api";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./contexts";
+import { SECRET_REVEALED_PREFIX } from "../utils/reveal";
 import { SCHEDULE_SEEN_PREFIX } from "../utils/schedule";
 
 const SESSION_KEYS = ["token", "user", "selectedEventId"];
 
-/** Borra los datos de la sesión, incluido qué cronogramas ya vio (equipos compartidos). */
+/** Borra los datos de la sesión, incluido qué cronogramas y sorpresas ya vio (equipos compartidos). */
 const clearSessionStorage = () => {
   SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
   Object.keys(localStorage)
-    .filter((key) => key.startsWith(SCHEDULE_SEEN_PREFIX) || key === "hasSeenChristmasTimeline")
+    .filter((key) => key.startsWith(SCHEDULE_SEEN_PREFIX) || key.startsWith(SECRET_REVEALED_PREFIX) || key === "hasSeenChristmasTimeline")
     .forEach((key) => localStorage.removeItem(key));
 };
 

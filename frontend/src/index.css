@@ -37,6 +37,9 @@
   --color-header-ink: #7f1d1d;
   --color-on-page: #fff8ee;        /* texto directamente sobre el fondo */
   --color-on-page-accent: #f9cf6e;
+  /* Caja de regalo de la revelación: color complementario al fondo del tema */
+  --color-gift: #15803d;
+  --color-gift-dark: #14532d;
 
   --radius-card: 20px;
   --radius-panel: 28px;
@@ -60,6 +63,8 @@
   --color-header-ink: #fff8ee;
   --color-on-page: #fff8ee;
   --color-on-page-accent: #f9cf6e;
+  --color-gift: #dc2626;
+  --color-gift-dark: #991b1b;
 }
 
 @keyframes fade-in {
@@ -139,8 +144,49 @@
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(249 207 110 / 0.6); border-radius: 9999px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 
+/* ===================== Revelación del amigo secreto ===================== */
+/* La caja "llama" con un pequeño meneo cada pocos segundos. */
+.gift-wobble { animation: gift-wobble 2.6s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes gift-wobble {
+  0%, 55%, 100% { transform: rotate(0); }
+  62% { transform: rotate(-7deg); }
+  70% { transform: rotate(6deg); }
+  78% { transform: rotate(-4deg); }
+  86% { transform: rotate(2deg); }
+}
+/* Al abrir: la tapa sale volando y la caja se infla y desaparece. */
+.gift-lid-open { animation: gift-lid-open 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) forwards; }
+@keyframes gift-lid-open {
+  to { transform: translateY(-160%) rotate(-32deg); opacity: 0; }
+}
+.gift-box-open { animation: gift-box-open 0.9s ease-in forwards; }
+@keyframes gift-box-open {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(0.3); opacity: 0; }
+}
+/* Confeti: cada pieza recibe su destino en --x, --y y su giro en --r. */
+.confetti-piece {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  animation: confetti-burst var(--d, 1.8s) cubic-bezier(0.15, 0.6, 0.35, 1) forwards;
+}
+@keyframes confetti-burst {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--x), var(--y)) rotate(var(--r)); opacity: 0; }
+}
+/* Aparición del contenido revelado */
+.reveal-in { animation: reveal-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2) both; }
+@keyframes reveal-in {
+  from { opacity: 0; transform: scale(0.92) translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* Accesibilidad: sin animaciones decorativas para quien lo pide */
 @media (prefers-reduced-motion: reduce) {
-  .snowflake, .garland-light { animation: none; display: none; }
+  .snowflake, .garland-light, .confetti-piece { animation: none; display: none; }
+  .gift-wobble { animation: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
