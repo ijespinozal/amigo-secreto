@@ -2,7 +2,7 @@
 // Esquemas de entrada de la API. El backend es la última línea de defensa:
 // el frontend valida por comodidad del usuario, aquí se valida por seguridad.
 import { z } from "zod";
-import { CHAT_MESSAGE_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../config/constants.js";
+import { CHAT_MESSAGE_MAX_LENGTH, MAX_EVENT_BUDGET, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../config/constants.js";
 
 const requiredText = (label, max) =>
   z
@@ -106,12 +106,27 @@ const optionalTime = z
   .transform((value) => value || null)
   .refine((value) => value === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(value), "La hora debe tener el formato HH:MM");
 
+// Monto opcional en soles: acepta número o texto del input ("" = sin presupuesto),
+// con hasta 2 decimales.
+const optionalBudget = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? null : typeof value === "string" ? Number(value.trim()) : value),
+  z
+    .number({ invalid_type_error: "El presupuesto debe ser un número" })
+    .finite("El presupuesto debe ser un número")
+    .positive("El presupuesto debe ser mayor que 0")
+    .max(MAX_EVENT_BUDGET, `El presupuesto admite máximo S/ ${MAX_EVENT_BUDGET}`)
+    // Céntimos enteros (con tolerancia: 49.9 * 100 = 4990.000000000001 en coma flotante).
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, "El presupuesto admite máximo 2 decimales")
+    .nullable()
+);
+
 export const eventSchema = z.object({
   title: requiredText("El título", 255),
   description: optionalText("La descripción", 2000),
   date_event: calendarDate,
   startTime: optionalTime,
   location: optionalText("El lugar", 255),
+  budget: optionalBudget,
 });
 
 export const participantSchema = z.object({

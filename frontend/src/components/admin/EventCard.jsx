@@ -1,6 +1,6 @@
 import { MIN_PARTICIPANTS_FOR_DRAW } from "../../config/rules";
 import { formatCalendarDate } from "../../utils/date";
-import { formatEventTime } from "../../utils/event";
+import { formatBudget, formatEventTime } from "../../utils/event";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import IconButton from "../ui/IconButton";
@@ -37,6 +37,7 @@ export default function EventCard({ event, onEdit, onDelete, onDraw, onResetDraw
           <span><span aria-hidden="true">📅</span> {event.date_event ? formatCalendarDate(event.date_event) : "Fecha por definir"}</span>
           {event.startTime && <span><span aria-hidden="true">🕖</span> {formatEventTime(event)}</span>}
           {event.location && <span className="break-words min-w-0"><span aria-hidden="true">📍</span> {event.location}</span>}
+          {event.budget != null && <span><span aria-hidden="true">💰</span> Hasta {formatBudget(event.budget)}</span>}
           <span><span aria-hidden="true">👥</span> {participants} {participants === 1 ? "participante" : "participantes"}</span>
         </div>
 

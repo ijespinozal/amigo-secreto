@@ -20,18 +20,28 @@ export default function EventFields({ value, errors = {}, onChange, minDate }) {
       <TextField label="Fecha del evento" type="date" min={minDate} {...field("date_event")} />
       <TextField label="Hora de inicio" type="time" hint="Opcional" {...field("startTime")} />
       <TextField
-        className="sm:col-span-2"
+        label="Presupuesto sugerido"
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step="0.01"
+        prefix="S/"
+        placeholder="Ej: 50"
+        hint="Opcional. Monto máximo sugerido por regalo."
+        {...field("budget")}
+      />
+      <TextField
         label="Lugar"
         icon="📍"
         placeholder="Ej: Casa de Fabricio, Av. Los Álamos 123"
         maxLength={255}
-        hint="Opcional. Los participantes podrán abrirlo en Google Maps."
+        hint="Opcional. Se abre en Google Maps."
         {...field("location")}
       />
       <TextField
         className="sm:col-span-2"
         label="Descripción"
-        placeholder="Opcional: presupuesto sugerido, código de vestimenta, detalles..."
+        placeholder="Opcional: código de vestimenta, qué llevar, detalles..."
         maxLength={2000}
         {...field("description")}
       />

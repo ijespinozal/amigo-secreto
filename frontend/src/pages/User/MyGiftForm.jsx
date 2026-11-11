@@ -15,6 +15,7 @@ import useApiData from "../../hooks/useApiData";
 import useDialog from "../../hooks/useDialog";
 import useEvents from "../../hooks/useEvents";
 import useRequireEvent from "../../hooks/useRequireEvent";
+import { formatBudget } from "../../utils/event";
 
 /** Progreso visual: un punto por opción (●●○). */
 function GiftProgress({ count }) {
@@ -95,7 +96,12 @@ export default function MyGiftForm() {
         emoji="🎁"
         subtitle={`${selectedEvent?.title ?? ""} · Cuéntale a tu amigo secreto qué te gustaría recibir.`}
       >
-        <GiftProgress count={gifts.length} />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <GiftProgress count={gifts.length} />
+          {selectedEvent?.budget != null && (
+            <Badge tone="cream" className="text-sm">💰 Presupuesto sugerido: hasta {formatBudget(selectedEvent.budget)}</Badge>
+          )}
+        </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

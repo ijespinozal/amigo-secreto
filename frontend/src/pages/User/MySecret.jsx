@@ -15,7 +15,7 @@ import useDialog from "../../hooks/useDialog";
 import useEvents from "../../hooks/useEvents";
 import useRequireEvent from "../../hooks/useRequireEvent";
 import { daysUntil, formatCalendarDate } from "../../utils/date";
-import { formatEventTime, mapsUrl } from "../../utils/event";
+import { formatBudget, formatEventTime, mapsUrl } from "../../utils/event";
 
 /** "987654321" -> "987 654 321" */
 const formatPhone = (phone = "") => phone.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
@@ -113,9 +113,10 @@ export default function MySecret() {
               </div>
             )}
 
-            {when && (
-              <div className="mt-4">
-                <Badge tone="green" wrap>🗓️ {when}</Badge>
+            {(when || event?.budget != null) && (
+              <div className="mt-4 flex flex-col items-center gap-2">
+                {when && <Badge tone="green" wrap>🗓️ {when}</Badge>}
+                {event?.budget != null && <Badge tone="gold" wrap>💰 Presupuesto: hasta {formatBudget(event.budget)}</Badge>}
               </div>
             )}
             {event?.location && (

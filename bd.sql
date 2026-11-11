@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS events (
   date_event DATE NULL,
   startTime TIME NULL,
   location VARCHAR(255) NULL,
+  budget DECIMAL(10,2) NULL,                         -- presupuesto sugerido por regalo (soles)
   createdBy INT NULL,
   drawDone TINYINT(1) NOT NULL DEFAULT 0,
   drawDate DATETIME NULL,

@@ -1,6 +1,6 @@
 import useCountdown from "../../hooks/useCountdown";
 import { daysUntil, formatCalendarDate, parseCalendarDate } from "../../utils/date";
-import { eventStart, formatEventTime, mapsUrl } from "../../utils/event";
+import { eventStart, formatBudget, formatEventTime, mapsUrl } from "../../utils/event";
 import Badge from "../ui/Badge";
 
 const UNITS = [
@@ -38,13 +38,15 @@ function Hero({ badge, title, subtitle, details, children }) {
   );
 }
 
-/** Hora y lugar del evento (si están definidos), con enlace al mapa. */
+/** Hora, lugar y presupuesto del evento (si están definidos), con enlace al mapa. */
 function WhenWhere({ event }) {
   const time = formatEventTime(event);
-  if (!time && !event.location) return null;
+  const budget = formatBudget(event.budget);
+  if (!time && !event.location && !budget) return null;
   return (
     <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
       {time && <Badge tone="green" className="text-sm">🕖 {time}</Badge>}
+      {budget && <Badge tone="gold" className="text-sm">💰 Regalo de hasta {budget}</Badge>}
       {event.location && (
         <a
           href={mapsUrl(event.location)}

@@ -30,6 +30,9 @@ export const ERROR_CODES = Object.freeze({
   CHAT_UNAVAILABLE: "CHAT_UNAVAILABLE",
 });
 
+// Presupuesto sugerido por regalo (soles)
+export const MAX_EVENT_BUDGET = 100000;
+
 // Chat secreto
 export const CHAT_MESSAGE_MAX_LENGTH = 500;
 export const CHAT_HISTORY_LIMIT = 200; // mensajes más recientes por conversación

@@ -11,6 +11,8 @@ export default (sequelize, DataTypes) => {
       // Hora local de inicio ("HH:MM:SS" en la BD) y lugar; ambos opcionales.
       startTime: { type: DataTypes.TIME, allowNull: true },
       location: { type: DataTypes.STRING(255), allowNull: true },
+      // Presupuesto sugerido por regalo, en soles (opcional).
+      budget: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
       createdBy: { type: DataTypes.INTEGER, allowNull: true },
       drawDone: { type: DataTypes.BOOLEAN, defaultValue: false },
       drawDate: { type: DataTypes.DATE, allowNull: true },

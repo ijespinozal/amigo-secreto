@@ -1,8 +1,10 @@
-// Reglas y presentación de un evento (fecha, hora de inicio y lugar).
+// Reglas y presentación de un evento (fecha, hora de inicio, lugar y presupuesto).
 import { parseCalendarDate } from "./date";
 import { formatScheduleTime } from "./schedule";
 
-export const EMPTY_EVENT = Object.freeze({ title: "", description: "", date_event: "", startTime: "", location: "" });
+export const EMPTY_EVENT = Object.freeze({ title: "", description: "", date_event: "", startTime: "", location: "", budget: "" });
+
+export const MAX_EVENT_BUDGET = 100000; // mismo límite que el backend
 
 /** Valores del formulario a partir de un evento guardado (null -> ""). */
 export const toEventForm = (event) => ({
@@ -11,13 +13,21 @@ export const toEventForm = (event) => ({
   date_event: event?.date_event ?? "",
   startTime: event?.startTime ?? "",
   location: event?.location ?? "",
+  budget: event?.budget === null || event?.budget === undefined ? "" : String(event.budget),
 });
 
-/** Errores por campo ({} si es válido). Hora y lugar son opcionales. */
+/** Errores por campo ({} si es válido). Hora, lugar y presupuesto son opcionales. */
 export const validateEvent = (form) => {
   const errors = {};
   if (!form.title.trim()) errors.title = "El título es obligatorio.";
   if (!form.date_event) errors.date_event = "La fecha es obligatoria.";
+  const budget = String(form.budget ?? "").trim();
+  if (budget) {
+    const amount = Number(budget);
+    if (!Number.isFinite(amount) || amount <= 0) errors.budget = "Ingresa un monto mayor que 0.";
+    else if (amount > MAX_EVENT_BUDGET) errors.budget = `El monto máximo es S/ ${MAX_EVENT_BUDGET}.`;
+    else if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) errors.budget = "Usa como máximo 2 decimales.";
+  }
   return errors;
 };
 
@@ -32,6 +42,14 @@ export const eventStart = (event) => {
 
 /** "19:30" -> "7:30 p. m." ("" si el evento no tiene hora). */
 export const formatEventTime = (event) => (event?.startTime ? formatScheduleTime(event.startTime) : "");
+
+/** 50 -> "S/ 50"; 49.9 -> "S/ 49.90" ("" si no hay presupuesto). */
+export const formatBudget = (budget) => {
+  if (budget === null || budget === undefined || budget === "") return "";
+  const amount = Number(budget);
+  const decimals = Number.isInteger(amount) ? 0 : 2;
+  return `S/ ${amount.toLocaleString("es-PE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+};
 
 /** Búsqueda del lugar en Google Maps (el lugar es texto libre). */
 export const mapsUrl = (location) =>

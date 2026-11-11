@@ -17,6 +17,8 @@ const serializeEvent = (event) => ({
   date_event: event.date_event,
   startTime: event.startTime?.slice(0, 5) ?? null, // "HH:MM:SS" -> "HH:MM"
   location: event.location ?? null,
+  // DECIMAL llega como texto desde mysql2: se envía como número.
+  budget: event.budget === null || event.budget === undefined ? null : Number(event.budget),
   drawDone: event.drawDone,
 });
 
