@@ -28,6 +28,7 @@ export const ERROR_CODES = Object.freeze({
   SAME_PASSWORD: "SAME_PASSWORD",
   DRAW_NAME_CONFLICT: "DRAW_NAME_CONFLICT",
   CHAT_UNAVAILABLE: "CHAT_UNAVAILABLE",
+  GIFTS_LOCKED: "GIFTS_LOCKED",
 });
 
 // Presupuesto sugerido por regalo (soles)

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api, { getErrorMessage } from "../../api";
+import api, { getErrorCode, getErrorMessage } from "../../api";
 import AlertMessage from "../../components/AlertMessage";
 import Card from "../../components/Card";
 import ConfirmModal from "../../components/ConfirmModal";
@@ -47,7 +47,19 @@ export default function MyGiftForm() {
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const showError = (err, title) => dialog.alert({ type: "error", title, message: getErrorMessage(err) });
+  // Después del sorteo las opciones ya registradas no se editan ni eliminan
+  // (quien regala ya pudo verlas); agregar sigue permitido hasta el límite.
+  const locked = selectedEvent?.drawDone === true;
+
+  const showError = (err, title) => {
+    // El sorteo pudo hacerse con la pantalla abierta: se actualiza el evento
+    // para que la pantalla muestre el bloqueo.
+    if (getErrorCode(err) === "GIFTS_LOCKED") {
+      reloadEvents().catch(() => {});
+      return dialog.alert({ type: "info", icon: "🔒", title: "El sorteo ya se realizó", message: getErrorMessage(err) });
+    }
+    return dialog.alert({ type: "error", title, message: getErrorMessage(err) });
+  };
 
   const saveEdit = async (values) => {
     try {
@@ -56,6 +68,7 @@ export default function MyGiftForm() {
       reload();
       setToast("🎄 ¡Opción actualizada!");
     } catch (err) {
+      if (getErrorCode(err) === "GIFTS_LOCKED") setEditing(null);
       showError(err, "No se pudo actualizar");
     }
   };
@@ -98,17 +111,35 @@ export default function MyGiftForm() {
       >
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <GiftProgress count={gifts.length} />
+          {locked && <Badge tone="cream" className="text-sm">🔒 Sorteo realizado</Badge>}
           {selectedEvent?.budget != null && (
             <Badge tone="cream" className="text-sm">💰 Presupuesto sugerido: hasta {formatBudget(selectedEvent.budget)}</Badge>
           )}
         </div>
       </PageHeader>
 
+      {locked && (
+        <section
+          aria-label="Opciones bloqueadas"
+          className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-[var(--radius-card)] bg-cream-100 border-2 border-gold-400/50 px-5 py-4 shadow-sm"
+        >
+          <p className="flex-1 text-sm font-semibold text-ink-soft">
+            <strong className="font-festive text-base text-brand-strong">🔒 Tus opciones ya no se pueden editar ni eliminar.</strong>{" "}
+            Tu Santa secreto ya pudo verlas o comprarlas.
+            {gifts.length < MAX_GIFTS_PER_PARTICIPANT && " Aún puedes agregar más ideas."} Si necesitas aclarar algo, escríbele.
+          </p>
+          <Button to="/user/chat?con=santa" variant="secondary" size="sm" className="shrink-0">
+            💬 Escribirle a mi Santa
+          </Button>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ALTA */}
         <Card title={<><span aria-hidden="true">➕</span> Agregar nueva opción</>}>
           <GiftForm
             giftsCount={gifts.length}
+            locked={locked}
             onAdded={() => {
               reload();
               setToast("🎁 ¡Opción guardada!");
@@ -139,8 +170,8 @@ export default function MyGiftForm() {
                   key={g.id}
                   gift={g}
                   position={index + 1}
-                  onEdit={() => setEditing(g)}
-                  onDelete={() => setToDelete(g)}
+                  onEdit={locked ? undefined : () => setEditing(g)}
+                  onDelete={locked ? undefined : () => setToDelete(g)}
                 />
               ))}
             </ul>

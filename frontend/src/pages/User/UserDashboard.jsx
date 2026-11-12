@@ -153,6 +153,9 @@ export default function UserDashboard() {
             description={`Registra hasta ${MAX_GIFTS_PER_PARTICIPANT} opciones de lo que te gustaría recibir este año.`}
             cta={
               busyCard === "gifts" ? busyCta
+                // Tras el sorteo ya no se editan (solo se pueden agregar si hay cupo).
+                : drawDone && gifts?.length >= MAX_GIFTS_PER_PARTICIPANT ? <>Ver mis deseos <span aria-hidden="true">👀</span></>
+                : drawDone && gifts?.length ? <>Ver o agregar deseos <span aria-hidden="true">➕</span></>
                 : gifts?.length ? <>Editar deseos <span aria-hidden="true">✏️</span></>
                 : <>Agregar deseos <span aria-hidden="true">➕</span></>
             }

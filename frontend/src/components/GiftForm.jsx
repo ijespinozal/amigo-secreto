@@ -8,10 +8,11 @@ import Button from "./ui/Button";
 /**
  * Alta de una opción de regalo.
  * @param {number} giftsCount cantidad ya registrada (para el límite)
+ * @param {boolean} [locked] sorteo realizado: las opciones ya no se editan ni eliminan
  * @param {() => void} onAdded
  * @param {(error) => void} onError
  */
-export default function GiftForm({ giftsCount = 0, onAdded, onError }) {
+export default function GiftForm({ giftsCount = 0, locked = false, onAdded, onError }) {
   const [form, setForm] = useState(EMPTY_GIFT);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -41,7 +42,9 @@ export default function GiftForm({ giftsCount = 0, onAdded, onError }) {
         <div aria-hidden="true" className="text-5xl mb-2">🎉</div>
         <p className="font-festive font-bold text-xl text-brand-strong">¡Completaste tus {MAX_GIFTS_PER_PARTICIPANT} opciones!</p>
         <p className="text-sm font-semibold text-ink-soft mt-1">
-          Es el máximo por evento. Si quieres cambiar alguna, edítala o elimínala de tu lista.
+          {locked
+            ? "Es el máximo por evento. Tu Santa secreto ya tiene todas tus ideas."
+            : "Es el máximo por evento. Si quieres cambiar alguna, edítala o elimínala de tu lista."}
         </p>
       </div>
     );

@@ -25,10 +25,36 @@ const serializeEvent = (event) => ({
 const GIFT_NOT_FOUND = { message: "Regalo no encontrado o no te pertenece" };
 
 /** Regalo del usuario autenticado, sin importar en qué evento esté. */
-const findOwnGift = (giftId, userId) =>
+const findOwnGift = (giftId, userId, transaction) =>
   GiftOption.findOne({
     where: { id: giftId },
-    include: [{ model: Participant, attributes: ["userId"], where: { userId }, required: true }],
+    include: [{ model: Participant, attributes: ["userId", "eventId"], where: { userId }, required: true }],
+    transaction,
+  });
+
+const GIFTS_LOCKED = {
+  code: ERROR_CODES.GIFTS_LOCKED,
+  message:
+    "El sorteo ya se realizó: tus opciones ya no se pueden editar ni eliminar. Si necesitas aclarar algo, escríbele a tu Santa secreto.",
+};
+
+/**
+ * Edita o elimina una opción propia solo si su evento aún no fue sorteado
+ * (quien regala ya pudo verla o comprarla). Agregar sigue permitido hasta el
+ * límite: ver addGiftOption.
+ * El evento se lee con bloqueo compartido: un sorteo simultáneo (que lo
+ * bloquea en exclusiva) espera a que termine esta operación, o viceversa.
+ * @returns {Promise<{ status: number, body: object }>}
+ */
+const changeOwnGift = (giftId, userId, apply) =>
+  sequelize.transaction(async (transaction) => {
+    const gift = await findOwnGift(giftId, userId, transaction);
+    if (!gift) return { status: 404, body: GIFT_NOT_FOUND };
+
+    const event = await Event.findByPk(gift.Participant.eventId, { transaction, lock: transaction.LOCK.SHARE });
+    if (event.drawDone) return { status: 409, body: GIFTS_LOCKED };
+
+    return apply(gift, transaction);
   });
 
 /**
@@ -169,12 +195,11 @@ export const addGiftOption = async (req, res) => {
  */
 export const updateGiftOption = async (req, res) => {
   try {
-    const gift = await findOwnGift(req.params.id, req.user.id);
-    if (!gift) return res.status(404).json(GIFT_NOT_FOUND);
-
-    await gift.update(req.body);
-
-    return res.json({ message: "Regalo actualizado correctamente", gift });
+    const result = await changeOwnGift(req.params.id, req.user.id, async (gift, transaction) => {
+      await gift.update(req.body, { transaction });
+      return { status: 200, body: { message: "Regalo actualizado correctamente", gift } };
+    });
+    return res.status(result.status).json(result.body);
   } catch (error) {
     console.error("updateGiftOption error:", error);
     return res.status(500).json({ message: "Error actualizando regalo" });
@@ -187,12 +212,11 @@ export const updateGiftOption = async (req, res) => {
  */
 export const deleteGiftOption = async (req, res) => {
   try {
-    const gift = await findOwnGift(req.params.id, req.user.id);
-    if (!gift) return res.status(404).json(GIFT_NOT_FOUND);
-
-    await gift.destroy();
-
-    return res.json({ message: "Regalo eliminado correctamente" });
+    const result = await changeOwnGift(req.params.id, req.user.id, async (gift, transaction) => {
+      await gift.destroy({ transaction });
+      return { status: 200, body: { message: "Regalo eliminado correctamente" } };
+    });
+    return res.status(result.status).json(result.body);
   } catch (error) {
     console.error("deleteGiftOption error:", error);
     return res.status(500).json({ message: "Error eliminando regalo" });
