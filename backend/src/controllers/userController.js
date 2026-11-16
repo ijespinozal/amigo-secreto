@@ -19,6 +19,7 @@ const serializeEvent = (event) => ({
   location: event.location ?? null,
   // DECIMAL llega como texto desde mysql2: se envía como número.
   budget: event.budget === null || event.budget === undefined ? null : Number(event.budget),
+  lockGiftsAfterDraw: event.lockGiftsAfterDraw,
   drawDone: event.drawDone,
 });
 
@@ -39,9 +40,10 @@ const GIFTS_LOCKED = {
 };
 
 /**
- * Edita o elimina una opción propia solo si su evento aún no fue sorteado
- * (quien regala ya pudo verla o comprarla). Agregar sigue permitido hasta el
- * límite: ver addGiftOption.
+ * Edita o elimina una opción propia. Si el evento ya fue sorteado y tiene el
+ * bloqueo activado (lockGiftsAfterDraw, por defecto sí), se rechaza: quien
+ * regala ya pudo verla o comprarla. Agregar sigue permitido hasta el límite:
+ * ver addGiftOption.
  * El evento se lee con bloqueo compartido: un sorteo simultáneo (que lo
  * bloquea en exclusiva) espera a que termine esta operación, o viceversa.
  * @returns {Promise<{ status: number, body: object }>}
@@ -52,7 +54,7 @@ const changeOwnGift = (giftId, userId, apply) =>
     if (!gift) return { status: 404, body: GIFT_NOT_FOUND };
 
     const event = await Event.findByPk(gift.Participant.eventId, { transaction, lock: transaction.LOCK.SHARE });
-    if (event.drawDone) return { status: 409, body: GIFTS_LOCKED };
+    if (event.drawDone && event.lockGiftsAfterDraw) return { status: 409, body: GIFTS_LOCKED };
 
     return apply(gift, transaction);
   });

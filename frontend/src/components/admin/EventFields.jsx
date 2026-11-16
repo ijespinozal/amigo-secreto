@@ -38,6 +38,23 @@ export default function EventFields({ value, errors = {}, onChange, minDate }) {
         hint="Opcional. Se abre en Google Maps."
         {...field("location")}
       />
+      <label className="sm:col-span-2 flex items-start gap-3 p-3.5 rounded-xl bg-white border-2 border-amber-200/80 cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pine-700/30">
+        <input
+          type="checkbox"
+          checked={value.lockGiftsAfterDraw}
+          onChange={(e) => onChange({ ...value, lockGiftsAfterDraw: e.target.checked }, "lockGiftsAfterDraw")}
+          className="w-5 h-5 m-0 mt-0.5 shrink-0 accent-pine-700 cursor-pointer"
+        />
+        <span>
+          <span className="block font-bold text-sm text-[#4A2E1B]">
+            🔒 Bloquear editar y eliminar opciones de regalo después del sorteo
+          </span>
+          <span className="block text-xs font-semibold text-stone-500 mt-0.5">
+            Recomendado: quien regala ya pudo verlas o comprarlas. Si lo desmarcas, podrán cambiarlas aunque el evento
+            esté sorteado. Agregar opciones siempre se permite hasta 3.
+          </span>
+        </span>
+      </label>
       <TextField
         className="sm:col-span-2"
         label="Descripción"

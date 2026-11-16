@@ -127,6 +127,8 @@ export const eventSchema = z.object({
   startTime: optionalTime,
   location: optionalText("El lugar", 255),
   budget: optionalBudget,
+  // Por defecto se bloquea (el comportamiento habitual si el cliente no lo envía).
+  lockGiftsAfterDraw: z.boolean({ invalid_type_error: "lockGiftsAfterDraw debe ser true o false" }).default(true),
 });
 
 export const participantSchema = z.object({

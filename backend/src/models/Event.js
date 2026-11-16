@@ -13,6 +13,8 @@ export default (sequelize, DataTypes) => {
       location: { type: DataTypes.STRING(255), allowNull: true },
       // Presupuesto sugerido por regalo, en soles (opcional).
       budget: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+      // Tras el sorteo, ¿se bloquea editar/eliminar opciones de regalo? (por defecto sí)
+      lockGiftsAfterDraw: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
       createdBy: { type: DataTypes.INTEGER, allowNull: true },
       drawDone: { type: DataTypes.BOOLEAN, defaultValue: false },
       drawDate: { type: DataTypes.DATE, allowNull: true },

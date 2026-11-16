@@ -38,6 +38,7 @@ export default function EventCard({ event, onEdit, onDelete, onDraw, onResetDraw
           {event.startTime && <span><span aria-hidden="true">🕖</span> {formatEventTime(event)}</span>}
           {event.location && <span className="break-words min-w-0"><span aria-hidden="true">📍</span> {event.location}</span>}
           {event.budget != null && <span><span aria-hidden="true">💰</span> Hasta {formatBudget(event.budget)}</span>}
+          {event.lockGiftsAfterDraw === false && <span><span aria-hidden="true">✏️</span> Opciones editables tras el sorteo</span>}
           <span><span aria-hidden="true">👥</span> {participants} {participants === 1 ? "participante" : "participantes"}</span>
         </div>
 

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS events (
   startTime TIME NULL,
   location VARCHAR(255) NULL,
   budget DECIMAL(10,2) NULL,                         -- presupuesto sugerido por regalo (soles)
+  lockGiftsAfterDraw TINYINT(1) NOT NULL DEFAULT 1,  -- tras el sorteo, bloquear editar/eliminar opciones
   createdBy INT NULL,
   drawDone TINYINT(1) NOT NULL DEFAULT 0,
   drawDate DATETIME NULL,

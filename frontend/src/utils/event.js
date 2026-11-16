@@ -2,7 +2,15 @@
 import { parseCalendarDate } from "./date";
 import { formatScheduleTime } from "./schedule";
 
-export const EMPTY_EVENT = Object.freeze({ title: "", description: "", date_event: "", startTime: "", location: "", budget: "" });
+export const EMPTY_EVENT = Object.freeze({
+  title: "",
+  description: "",
+  date_event: "",
+  startTime: "",
+  location: "",
+  budget: "",
+  lockGiftsAfterDraw: true,
+});
 
 export const MAX_EVENT_BUDGET = 100000; // mismo límite que el backend
 
@@ -14,7 +22,15 @@ export const toEventForm = (event) => ({
   startTime: event?.startTime ?? "",
   location: event?.location ?? "",
   budget: event?.budget === null || event?.budget === undefined ? "" : String(event.budget),
+  lockGiftsAfterDraw: event?.lockGiftsAfterDraw !== false,
 });
+
+/**
+ * ¿Las opciones de regalo ya no se pueden editar ni eliminar? Solo si el
+ * evento fue sorteado y tiene el bloqueo activado (por defecto sí). Agregar
+ * siempre se permite hasta el límite.
+ */
+export const giftsLocked = (event) => event?.drawDone === true && event?.lockGiftsAfterDraw !== false;
 
 /** Errores por campo ({} si es válido). Hora, lugar y presupuesto son opcionales. */
 export const validateEvent = (form) => {

@@ -15,7 +15,7 @@ import useApiData from "../../hooks/useApiData";
 import useDialog from "../../hooks/useDialog";
 import useEvents from "../../hooks/useEvents";
 import useRequireEvent from "../../hooks/useRequireEvent";
-import { formatBudget } from "../../utils/event";
+import { formatBudget, giftsLocked } from "../../utils/event";
 
 /** Progreso visual: un punto por opción (●●○). */
 function GiftProgress({ count }) {
@@ -49,7 +49,7 @@ export default function MyGiftForm() {
 
   // Después del sorteo las opciones ya registradas no se editan ni eliminan
   // (quien regala ya pudo verlas); agregar sigue permitido hasta el límite.
-  const locked = selectedEvent?.drawDone === true;
+  const locked = giftsLocked(selectedEvent);
 
   const showError = (err, title) => {
     // El sorteo pudo hacerse con la pantalla abierta: se actualiza el evento

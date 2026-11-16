@@ -16,6 +16,7 @@ import { SHOW_PRIZE_CAROUSEL } from "../../config/features";
 import { MAX_GIFTS_PER_PARTICIPANT } from "../../config/rules";
 import { scheduleSeenKey } from "../../utils/schedule";
 import { NO_EVENT_DIALOG, NOT_DRAWN_DIALOG } from "../../config/messages";
+import { giftsLocked } from "../../utils/event";
 
 export default function UserDashboard() {
   const { user } = useAuth();
@@ -51,6 +52,7 @@ export default function UserDashboard() {
   };
 
   const drawDone = selectedEvent?.drawDone === true;
+  const locked = giftsLocked(selectedEvent);
   // Mensajes secretos: existen solo después del sorteo.
   const { data: chats } = useApiData("/user/chats", { ...eventScope, enabled: eventScope.enabled && drawDone });
 
@@ -153,9 +155,9 @@ export default function UserDashboard() {
             description={`Registra hasta ${MAX_GIFTS_PER_PARTICIPANT} opciones de lo que te gustaría recibir este año.`}
             cta={
               busyCard === "gifts" ? busyCta
-                // Tras el sorteo ya no se editan (solo se pueden agregar si hay cupo).
-                : drawDone && gifts?.length >= MAX_GIFTS_PER_PARTICIPANT ? <>Ver mis deseos <span aria-hidden="true">👀</span></>
-                : drawDone && gifts?.length ? <>Ver o agregar deseos <span aria-hidden="true">➕</span></>
+                // Con las opciones bloqueadas ya no se editan (solo se agregan si hay cupo).
+                : locked && gifts?.length >= MAX_GIFTS_PER_PARTICIPANT ? <>Ver mis deseos <span aria-hidden="true">👀</span></>
+                : locked && gifts?.length ? <>Ver o agregar deseos <span aria-hidden="true">➕</span></>
                 : gifts?.length ? <>Editar deseos <span aria-hidden="true">✏️</span></>
                 : <>Agregar deseos <span aria-hidden="true">➕</span></>
             }

@@ -24,6 +24,7 @@ const serializeEvent = (event) => ({
   location: event.location ?? null,
   // DECIMAL llega como texto desde mysql2: se envía como número.
   budget: event.budget === null || event.budget === undefined ? null : Number(event.budget),
+  lockGiftsAfterDraw: event.lockGiftsAfterDraw,
   drawDone: event.drawDone,
   drawDate: event.drawDate,
   createdAt: event.createdAt,
@@ -38,8 +39,8 @@ const serializeEvent = (event) => ({
 // ===============================
 export const createEvent = async (req, res) => {
   try {
-    const { title, description, date_event, startTime, location, budget } = req.body;
-    const ev = await Event.create({ title, description, date_event, startTime, location, budget, createdBy: req.user.id });
+    const { title, description, date_event, startTime, location, budget, lockGiftsAfterDraw } = req.body;
+    const ev = await Event.create({ title, description, date_event, startTime, location, budget, lockGiftsAfterDraw, createdBy: req.user.id });
     res.status(201).json({ message: "Event created", event: { ...serializeEvent(ev), participantsCount: 0, activitiesCount: 0 } });
   } catch (err) {
     console.error("createEvent:", err);
@@ -69,8 +70,8 @@ export const updateEvent = async (req, res) => {
     const ev = await Event.findByPk(req.params.id, { include: [{ model: Participant, attributes: ["id"] }] });
     if (!ev) return res.status(404).json(EVENT_NOT_FOUND);
 
-    const { title, description, date_event, startTime, location, budget } = req.body;
-    await ev.update({ title, description, date_event, startTime, location, budget });
+    const { title, description, date_event, startTime, location, budget, lockGiftsAfterDraw } = req.body;
+    await ev.update({ title, description, date_event, startTime, location, budget, lockGiftsAfterDraw });
 
     res.json({ message: "Evento actualizado", event: serializeEvent(ev) });
   } catch (err) {
